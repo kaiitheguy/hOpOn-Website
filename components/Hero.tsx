@@ -40,8 +40,8 @@ export const Hero: React.FC = () => {
                 <h2 className="font-display font-bold text-4xl md:text-6xl italic tracking-tight text-hopon-red mb-6">
                     IT'S A WORKFLOW.
                 </h2>
-                <p className="font-mono text-xs md:text-sm leading-relaxed tracking-wide text-black/80 max-w-sm ml-auto mb-6">
-                    System for how collaboration <br/> actually happens.<br/>
+                <p className="font-mono text-xs md:text-sm leading-relaxed tracking-wide text-black/80 max-w-m ml-auto mb-12">
+                    System for how collaboration actually happens.<br/>
                     No noise. Just structure.
                 </p>
                 <a href="#context" className="inline-block font-mono text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-hopon-red hover:border-hopon-red transition-colors">
