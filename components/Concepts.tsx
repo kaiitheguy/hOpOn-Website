@@ -33,7 +33,7 @@ export const Concepts: React.FC = () => {
               Not one-off campaigns, but partnerships built to last.<br/>
               <br/>
               <br/>
-              <span className="font-display font-bold text-2xl md:text-2xl uppercase leading-none tracking-tighter text-center">hOpOn is built around those outcomes.</span>
+              <span className="font-display font-bold text-2xl md:text-2xl leading-none tracking-tighter text-center">hOpOn IS BUILT AROUND THOSE OUTCOMES.</span>
           </p>
       </div>
     </Section>

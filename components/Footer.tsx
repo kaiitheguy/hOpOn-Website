@@ -39,7 +39,7 @@ export const Footer: React.FC = () => {
                
                <div className="mt-12">
                    <p className="font-display font-bold text-2xl md:text-3xl leading-none">
-                       BUILT FOR<br/>LONG-TERM RELEVANCE.
+                       REAL LIFE<br/>REAL INFLUENCE
                    </p>
                </div>
           </div>
@@ -47,8 +47,8 @@ export const Footer: React.FC = () => {
 
       {/* Bottom Section */}
       <div className="p-4 md:p-6 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-            © {new Date().getFullYear()} hOpOn Platform.
+        <div className="font-mono text-[10px] tracking-widest text-white/40">
+            © {new Date().getFullYear()} THE hOpOn APP
         </div>
         <div className="flex gap-4">
             <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
