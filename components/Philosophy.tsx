@@ -46,7 +46,9 @@ export const Philosophy: React.FC = () => {
 
                     <p>
                         After the work was done, there was rarely anything to return to.<br/>
-                        <span className="text-black/60">No shared record. No shared understanding.</span>
+                        <ul className="space-y-2 pl-4 border-l border-hopon-red/30 text-black/70">
+                          <li>No shared record. No shared understanding.</li>
+                        </ul>
                     </p>
 
                     <p className="text-hopon-red font-medium">

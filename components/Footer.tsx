@@ -52,7 +52,7 @@ export const Footer: React.FC = () => {
         </div>
         <div className="flex gap-4">
             <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-                Shanghai • Tokyo • Seoul
+                New York
             </span>
             <a href="#" onClick={scrollToTop} className="font-mono text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">
                 ↑ Back to Top

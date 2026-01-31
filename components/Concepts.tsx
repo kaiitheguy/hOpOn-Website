@@ -12,21 +12,28 @@ export const Concepts: React.FC = () => {
 
       <div className="w-full bg-hopon-black text-white py-4 md:py-6 overflow-hidden rotate-1 scale-105 border-y-4 border-hopon-red">
         <div className="animate-marquee whitespace-nowrap flex gap-12 items-center">
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Structured Collaboration</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Real Footfall</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Repeatable Campaigns</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Structured Collaboration</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
             <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Clear Expectations</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Shared Context</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Built to Repeat</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-             <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Built to Repeat</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">No Guesswork</span>
+            <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">More Signal</span>
         </div>
       </div>
       
       <div className="max-w-4xl mx-auto mt-24 px-6 text-center">
           <p className="font-mono text-sm md:text-base tracking-wide">
-              Real Footfall Beyond Views Structured Collaboration Clear Expectations Built to Repeat No Guesswork More Signal.
+              Not just content, but experiences.<br/>
+              Not just reach, but real visits.<br/>
+              Not one-off campaigns, but partnerships built to last.<br/>
+              <br/>
+              <br/>
+              <span className="font-display font-bold text-2xl md:text-2xl uppercase leading-none tracking-tighter text-center">hOpOn is built around those outcomes.</span>
           </p>
       </div>
     </Section>
