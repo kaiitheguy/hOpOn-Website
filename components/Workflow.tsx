@@ -17,7 +17,7 @@ export const Workflow: React.FC = () => {
     { step: "01", title: "PUBLISH", desc: "Define your offer, usage rights, and vibe." },
     { step: "02", title: "SELECT", desc: "Approve creators. Only who fits." },
     { step: "03", title: "HOST", desc: "Scan QR. No awkward intros." },
-    { step: "04", title: "RECEIVE", desc: "Posts live. Footfall follows. Run it again — or don't." },
+    { step: "04", title: "RECEIVE", desc: "Posts live. Footfall follows. Run it again." },
   ];
 
   const creatorSteps: Step[] = [
