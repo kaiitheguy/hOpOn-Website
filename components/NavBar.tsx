@@ -53,8 +53,8 @@ export const NavBar: React.FC = () => {
           <a href="#workflow" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Workflow
           </a>
-          <a href="mailto:hello@hopon.space" className="bg-hopon-black text-white font-mono text-xs font-bold uppercase px-6 py-3 border border-black hover:bg-white hover:text-black transition-colors duration-300">
-            Login
+          <a href="mailto:contact@thehoponapp.com" className="bg-hopon-black text-white font-mono text-xs font-bold uppercase px-6 py-3 border border-black hover:bg-white hover:text-black transition-colors duration-300">
+            Contact
           </a>
         </div>
       </div>

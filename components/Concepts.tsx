@@ -14,21 +14,19 @@ export const Concepts: React.FC = () => {
         <div className="animate-marquee whitespace-nowrap flex gap-12 items-center">
             <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Structured Collaboration</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Vetted Access</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Repeatable Campaigns</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Experiential Impact</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Clear Expectations</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Real Footfall</span>
+            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Shared Context</span>
             <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-             <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Structured Collaboration</span>
-            <span className="w-4 h-4 bg-hopon-red rounded-full"></span>
-            <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Vetted Access</span>
+             <span className="font-display font-bold text-2xl md:text-4xl uppercase tracking-wider">Built to Repeat</span>
         </div>
       </div>
       
       <div className="max-w-4xl mx-auto mt-24 px-6 text-center">
           <p className="font-mono text-sm md:text-base tracking-wide">
-              We provide a linear workflow from booking to content delivery, removing the back-and-forth.
+              Real Footfall Beyond Views Structured Collaboration Clear Expectations Built to Repeat No Guesswork More Signal.
           </p>
       </div>
     </Section>

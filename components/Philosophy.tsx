@@ -6,7 +6,7 @@ export const Philosophy: React.FC = () => {
     <Section id="context" className="!py-0 bg-hopon-grey">
       <div className="w-full border-t border-black">
         
-        {/* Header Row */}
+        {/* 001 Context */}
         <div className="grid grid-cols-1 md:grid-cols-2 border-b border-black">
             <div className="p-6 md:p-12 border-b md:border-b-0 md:border-r border-black">
                 <span className="font-mono text-xs uppercase tracking-widest text-black/50 block mb-32 md:mb-64">001 — Context</span>
@@ -18,22 +18,22 @@ export const Philosophy: React.FC = () => {
                 <div className="font-mono text-sm md:text-base leading-relaxed max-w-md space-y-6">
                     <p>
                         Influencer marketing didn’t start broken.<br/>
-                        It became broken over time.
+                        It became messy slowly, then all at once.
                     </p>
                     <p>
-                        What was meant to be simple — people sharing real experiences —
-                        slowly turned into scattered DMs, unclear asks, and fragile arrangements.
+                        What was meant to be simple turned into scattered conversations, unclear expectations, and fragile agreements.<br/>
+                        Not because people stopped caring, but because nothing was built to hold the process together.
                     </p>
-                    <p>
-                        Everyone is doing their best.<br/>
+                    <p className="text-hopon-red font-medium">
+                        Everyone is participating.<br/>
                         No one has a system that actually works.
                     </p>
                 </div>
             </div>
         </div>
 
-        {/* Content Row */}
-         <div className="grid grid-cols-1 md:grid-cols-2">
+        {/* 002 Findings */}
+         <div className="grid grid-cols-1 md:grid-cols-2 border-b border-black">
             <div className="p-6 md:p-12 border-b md:border-b-0 md:border-r border-black order-2 md:order-1 flex flex-col justify-end">
                 <div className="font-mono text-sm md:text-base leading-relaxed max-w-md space-y-6">
                     <p>We kept seeing good collaborations struggle for the same reasons.</p>
@@ -60,6 +60,39 @@ export const Philosophy: React.FC = () => {
                 <h2 className="font-display font-bold text-4xl md:text-5xl uppercase leading-none">
                     What We<br/>Saw
                 </h2>
+            </div>
+        </div>
+
+        {/* 003 Solution */}
+        <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="p-6 md:p-12 border-b md:border-b-0 md:border-r border-black">
+                <span className="font-mono text-xs uppercase tracking-widest text-black/50 block mb-32 md:mb-64">003 — Solution</span>
+                <h2 className="font-display font-bold text-4xl md:text-5xl uppercase leading-none">
+                    Clarity<br/>As A Service
+                </h2>
+            </div>
+            <div className="p-6 md:p-12 flex flex-col justify-end">
+                <div className="font-mono text-sm md:text-base leading-relaxed max-w-md space-y-6">
+                    <p>
+                        So we made a decision.<br/>
+                        We standardized what shouldn’t be vague.
+                    </p>
+                    <p>
+                        hOpOn is not here to manage creativity or dictate outcomes.<br/>
+                        It exists to remove ambiguity.
+                    </p>
+                    <p>
+                        A place where participation is clear, timelines are visible, and collaborations have a beginning, a middle, and an end.
+                    </p>
+                    <p>
+                        Where creators keep their voice.<br/>
+                        And restaurants know what’s happening without chasing it.
+                    </p>
+                    <p className="text-hopon-red font-medium">
+                        Less guessing.<br/>
+                        More alignment.
+                    </p>
+                </div>
             </div>
         </div>
 

@@ -16,16 +16,15 @@ export const Footer: React.FC = () => {
               <ul className="space-y-4 font-display font-bold text-lg uppercase">
                   <li><a href="#mission" className="hover:text-hopon-red transition-colors">Mission</a></li>
                   <li><a href="#workflow" className="hover:text-hopon-red transition-colors">Workflow</a></li>
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Pricing</a></li>
               </ul>
           </div>
           
           <div className="p-8 md:p-12 border-b md:border-b-0 lg:border-r border-white/20">
-               <h4 className="font-mono text-xs uppercase tracking-widest text-white/50 mb-8">Legal</h4>
-               <ul className="space-y-4 font-display font-bold text-lg uppercase">
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Terms</a></li>
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Privacy</a></li>
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Cookies</a></li>
+               <h4 className="font-mono text-xs uppercase tracking-widest text-white/50 mb-8">LEGAL</h4>
+               <ul className="space-y-4 font-display font-bold text-lg uppercase text-white">
+                  <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Terms</a></li>
+                  <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Privacy</a></li>
+                  <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Cookies</a></li>
               </ul>
           </div>
 
