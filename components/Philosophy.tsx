@@ -21,7 +21,7 @@ export const Philosophy: React.FC = () => {
                         It became messy slowly, then all at once.
                     </p>
                     <p>
-                        What was meant to be simple turned into scattered conversations, unclear expectations, and fragile agreements.<br/>
+                        What was meant to be simply turned into scattered conversations, unclear expectations, and fragile agreements.<br/>
                         Not because people stopped caring, but because nothing was built to hold the process together.
                     </p>
                     <p className="text-hopon-red font-medium">
@@ -47,7 +47,8 @@ export const Philosophy: React.FC = () => {
                     <p>
                         After the work was done, there was rarely anything to return to.<br/>
                         <ul className="space-y-2 pl-4 border-l border-hopon-red/30 text-black/70">
-                          <li>No shared record. No shared understanding.</li>
+                          <li>No shared record. </li>
+                          <li>No shared understanding.</li>
                         </ul>
                     </p>
 

@@ -5,8 +5,21 @@ export const Hero: React.FC = () => {
   const [ref, isVisible] = useIntersectionObserver();
 
   return (
-    <header className="relative w-full min-h-screen flex flex-col justify-end pb-12 md:pb-24 px-4 md:px-8 pt-32">
-      <div ref={ref} className="w-full max-w-[1920px] mx-auto border-t border-black pt-8">
+    <header className="relative w-full min-h-screen flex flex-col justify-end pb-12 md:pb-24 px-4 md:px-8 pt-32 overflow-hidden bg-white">
+      
+      {/* Background Graphic - Abstract Halftone/Texture */}
+      <div className="absolute top-0 left-0 w-full h-[90vh] z-0 pointer-events-none mix-blend-multiply opacity-[0.12] select-none">
+         <img 
+            src="https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop" 
+            alt="Abstract Background Texture" 
+            className="w-full h-full object-cover grayscale contrast-125"
+         />
+         {/* Gradient fade to white at the bottom to blend seamlessly with the content area */}
+         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white"></div>
+         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-white/40"></div>
+      </div>
+
+      <div ref={ref} className="relative z-10 w-full max-w-[1920px] mx-auto border-t border-black pt-8">
         
         <div className="flex justify-between items-start mb-16 md:mb-32">
             <p className={`font-mono text-xs font-medium uppercase tracking-widest text-black/60 fade-up-enter ${isVisible ? 'fade-up-active' : ''}`}>
