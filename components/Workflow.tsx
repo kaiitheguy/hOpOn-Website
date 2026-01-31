@@ -54,7 +54,7 @@ export const Workflow: React.FC = () => {
             </button>
           </div>
 
-          <div className="mt-24 font-mono text-xs text-black/60 max-w-xs uppercase">
+          <div className="mt-24 font-mono text-xs text-black/60 max-w-xs">
             Designed to remove friction.
             <br/>
             {activeTab === 'merchant' ? "You control who comes in." : "You control where you go."}
@@ -72,7 +72,7 @@ export const Workflow: React.FC = () => {
                
                <div>
                    <h3 className="font-display font-bold text-4xl md:text-5xl mb-2">{item.title}</h3>
-                   <p className="font-mono text-sm uppercase opacity-60 max-w-sm">{item.desc}</p>
+                   <p className="font-mono text-sm opacity-60 max-w-sm">{item.desc}</p>
                </div>
             </div>
           ))}

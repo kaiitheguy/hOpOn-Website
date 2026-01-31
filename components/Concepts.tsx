@@ -27,7 +27,7 @@ export const Concepts: React.FC = () => {
       </div>
       
       <div className="max-w-4xl mx-auto mt-24 px-6 text-center">
-          <p className="font-mono text-sm md:text-base uppercase tracking-widest">
+          <p className="font-mono text-sm md:text-base tracking-wide">
               We provide a linear workflow from booking to content delivery, removing the back-and-forth.
           </p>
       </div>

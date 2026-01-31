@@ -17,7 +17,7 @@ export const Hero: React.FC = () => {
             </p>
         </div>
         
-        <div className="relative">
+        <div id="mission" className="relative">
             <h1 className={`font-display font-bold text-[13vw] leading-[0.8] tracking-tighter uppercase text-hopon-black fade-up-enter ${isVisible ? 'fade-up-active stagger-1' : ''}`}>
               NOT AN<br />
               AGENCY.
@@ -27,9 +27,12 @@ export const Hero: React.FC = () => {
                 <h2 className="font-display font-bold text-4xl md:text-6xl italic tracking-tight text-hopon-red mb-6">
                     IT'S A WORKFLOW.
                 </h2>
-                <p className="font-mono text-xs md:text-sm leading-relaxed uppercase tracking-wide text-black/80 max-w-sm ml-auto">
+                <p className="font-mono text-xs md:text-sm leading-relaxed tracking-wide text-black/80 max-w-sm ml-auto mb-6">
                     hOpOn standardizes the collaboration between physical spaces and creators. No noise. Just structure.
                 </p>
+                <a href="#context" className="inline-block font-mono text-xs font-bold uppercase tracking-widest border-b border-black pb-1 hover:text-hopon-red hover:border-hopon-red transition-colors">
+                    Explore Context ↓
+                </a>
             </div>
         </div>
 

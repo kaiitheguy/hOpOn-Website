@@ -1,6 +1,11 @@
 import React from 'react';
 
 export const Footer: React.FC = () => {
+  const scrollToTop = (e: React.MouseEvent) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="bg-hopon-black text-white border-t border-black">
       
@@ -9,8 +14,8 @@ export const Footer: React.FC = () => {
           <div className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-white/20">
               <h4 className="font-mono text-xs uppercase tracking-widest text-white/50 mb-8">Platform</h4>
               <ul className="space-y-4 font-display font-bold text-lg uppercase">
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Mission</a></li>
-                  <li><a href="#" className="hover:text-hopon-red transition-colors">Workflow</a></li>
+                  <li><a href="#mission" className="hover:text-hopon-red transition-colors">Mission</a></li>
+                  <li><a href="#workflow" className="hover:text-hopon-red transition-colors">Workflow</a></li>
                   <li><a href="#" className="hover:text-hopon-red transition-colors">Pricing</a></li>
               </ul>
           </div>
@@ -46,8 +51,13 @@ export const Footer: React.FC = () => {
         <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">
             © {new Date().getFullYear()} hOpOn Platform.
         </div>
-        <div className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-            Shanghai • Tokyo • Seoul
+        <div className="flex gap-4">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-white/40">
+                Shanghai • Tokyo • Seoul
+            </span>
+            <a href="#" onClick={scrollToTop} className="font-mono text-[10px] uppercase tracking-widest text-white/40 hover:text-white transition-colors">
+                ↑ Back to Top
+            </a>
         </div>
       </div>
     </footer>
