@@ -21,8 +21,8 @@ export const Philosophy: React.FC = () => {
                         It became messy slowly, then all at once.
                     </p>
                     <p>
-                        What was meant to be simply turned into scattered conversations, unclear expectations, and fragile agreements.<br/>
-                        Not because people stopped caring, but because nothing was built to hold the process together.
+                        Sharing was meant to be simple.<br/>
+                        It drifted into DMs, vague expectations, and fragile agreements.
                     </p>
                     <p className="text-hopon-red font-medium">
                         Everyone is participating.<br/>
@@ -86,7 +86,7 @@ export const Philosophy: React.FC = () => {
                         It exists to remove ambiguity.
                     </p>
                     <p>
-                        A place where participation is clear, timelines are visible, and collaborations have a beginning, a middle, and an end.
+                        A place where participations are clear, timelines are visible, and collaborations are trackable.
                     </p>
                     <p>
                         Where creators keep their voice.<br/>

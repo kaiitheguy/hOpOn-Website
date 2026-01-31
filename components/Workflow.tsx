@@ -17,14 +17,14 @@ export const Workflow: React.FC = () => {
     { step: "01", title: "PUBLISH", desc: "Define your offer, usage rights, and vibe." },
     { step: "02", title: "SELECT", desc: "Approve creators. Only who fits." },
     { step: "03", title: "HOST", desc: "Scan QR. No awkward intros." },
-    { step: "04", title: "RECEIVE", desc: "Download high-res assets instantly." },
+    { step: "04", title: "RECEIVE", desc: "Posts live. Footfall follows. Run it again — or don't." },
   ];
 
   const creatorSteps: Step[] = [
-    { step: "01", title: "BROWSE", desc: "Curated experiences in your city." },
+    { step: "01", title: "BROWSE", desc: "Curated experiences in your area." },
     { step: "02", title: "APPLY", desc: "Request slots. No DMs." },
     { step: "03", title: "VISIT", desc: "Enjoy the service. Capture the mood." },
-    { step: "04", title: "DELIVER", desc: "Upload to unlock future access." },
+    { step: "04", title: "DELIVER", desc: "Share the work. Keep access open." },
   ];
 
   const activeSteps = activeTab === 'merchant' ? merchantSteps : creatorSteps;
