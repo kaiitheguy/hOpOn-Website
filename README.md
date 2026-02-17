@@ -38,24 +38,14 @@ View your app in AI Studio: https://ai.studio/apps/drive/1h-Lbc9M7LEkj8I33Mpnjo2
 | `VITE_SUPABASE_ANON_KEY` | For /verify | Supabase anon key (public, safe in client-side build) |
 | `GEMINI_API_KEY` | No | Used only if the app calls Gemini APIs |
 
-These are read at **build time** by Vite (the app is a static SPA). Do not put Supabase keys in repo or in code.
+Locally, the app reads from `.env` (or `import.meta.env`). On Cloud Run, the server injects them at runtime via `/config.js`. Do not put keys in the repo.
 
-## Cloud Run: configuring env
+## Cloud Run deployment (runtime config)
 
-For Cloud Run, the app is built as a static site and served with `serve`. To inject Supabase (or other) env into the build:
+Production uses a Node server (`server.js`) that serves `dist`, exposes `/config.js` (runtime env for the frontend), and listens on `$PORT`. **Why?** Vite inlines env at build time; Cloud Run only provides env in the container, so `/config.js` reads `process.env` and sets `window.__RUNTIME_CONFIG__` for the app.
 
-1. **Build-time env (recommended)**  
-   When Cloud Build runs `npm run build`, ensure the build step has access to env vars. In Cloud Build configuration (e.g. `cloudbuild.yaml` or the Cloud Run “Build” UI), set **Substitution variables** or **Secret manager** and pass them into the build, e.g.:
-   - `VITE_SUPABASE_URL` = your Supabase URL  
-   - `VITE_SUPABASE_ANON_KEY` = your Supabase anon key  
+**Env on Cloud Run:** In **Edit & deploy** → **Variables & secrets**, set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and optionally `GEMINI_API_KEY`. No keys in repo.
 
-   Then in the build step, export them before `npm run build`:
-   ```bash
-   export VITE_SUPABASE_URL="$ _SUPABASE_URL"
-   export VITE_SUPABASE_ANON_KEY="$ _SUPABASE_ANON_KEY"
-   npm ci && npm run build
-   ```
-   (Replace `_SUPABASE_URL` / `_SUPABASE_ANON_KEY` with your actual substitution/secret names in Cloud Build.)
+**Build/start:** `npm run build` then `npm run start` (`node server.js`).
 
-2. **Runtime env**  
-   Cloud Run “Runtime” env vars are available in the **running container**, not during `vite build`. Because Vite inlines `import.meta.env.VITE_*` at build time, runtime env alone will not change the client bundle. So for this SPA, use build-time env as above. Do not commit `.env` or any real keys to the repo.
+---

@@ -1,0 +1,33 @@
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+const distPath = path.join(__dirname, 'dist');
+
+// 1) /config.js 优先：运行时配置，不被静态或 SPA fallback 吃掉
+app.get('/config.js', (_req, res) => {
+  const config = {
+    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
+    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || '',
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  };
+  const body = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(config)};`;
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.send(body);
+});
+
+// 2) 静态文件（dist）
+app.use(express.static(distPath, { index: false }));
+
+// 3) SPA fallback：其余请求返回 index.html
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}`);
+});
