@@ -88,14 +88,14 @@ export async function redeemCode(codeText: string): Promise<RedeemResult> {
   return { ok: false, errorCode: 'UNKNOWN', rawMessage: 'RPC returned no template code name' };
 }
 
-/** 用 code_name 查 coupon_templates，取 title、description、terms/term 等。 */
+/** 用 code_name 查 coupon_templates，取 title、description、terms 等。表列为 terms（无 term）。 */
 export async function getCouponTemplate(
   templateCodeName: string
 ): Promise<CouponTemplate | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from('coupon_templates')
-    .select('title, description, terms, term, code_name, icon')
+    .select('title, description, terms, code_name, icon')
     .eq('code_name', templateCodeName)
     .limit(1)
     .maybeSingle();
@@ -109,7 +109,7 @@ export async function getCouponTemplate(
   return {
     title: (row.title as string) ?? null,
     description: (row.description as string) ?? null,
-    terms: (row.terms as string) ?? (row.term as string) ?? null,
+    terms: (row.terms as string) ?? null,
     code_name: row.code_name as string | undefined,
     icon: row.icon as string | undefined,
   };
@@ -174,5 +174,33 @@ export async function verifyCodeOnly(codeText: string): Promise<RedeemResult & {
   }
 
   const template = await getCouponTemplate(templateName);
-  return { ok: true, templateCodeName: templateName, template: template ?? undefined };
+  return {
+    ok: true,
+    templateCodeName: templateName,
+    template: template ?? undefined,
+    code_id: codeRow.id,
+  };
+}
+
+/** 记录未登录用户的 promocode 兑换（仅插入，不阻塞 UI）。 */
+export function trackAnonymousRedemption(payload: {
+  code_text: string;
+  template_code_name: string;
+  code_id?: string;
+}): void {
+  try {
+    const supabase = getSupabase();
+    supabase
+      .from('anonymous_redemptions')
+      .insert({
+        code_text: payload.code_text.trim(),
+        template_code_name: payload.template_code_name,
+        code_id: payload.code_id || null,
+      })
+      .then(({ error }) => {
+        if (error) console.warn('[trackAnonymousRedemption]', error.message);
+      });
+  } catch {
+    // 忽略：未配置 Supabase 或表不存在时不报错
+  }
 }

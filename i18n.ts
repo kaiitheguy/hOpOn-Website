@@ -6,9 +6,11 @@ const translations: Record<
     pageTitle: string;
     placeholder: string;
     redeemButton: string;
+    redeemMore: string;
     successTitle: string;
     failedTitle: string;
     tryAgain: string;
+    notConfigured: string;
     errors: Record<string, string>;
   }
 > = {
@@ -16,6 +18,7 @@ const translations: Record<
     pageTitle: 'Redeem your code',
     placeholder: 'PROMOCODE',
     redeemButton: 'Redeem',
+    redeemMore: 'Redeem more',
     successTitle: 'Redeemed',
     failedTitle: 'Failed',
     tryAgain: 'Try again',
@@ -34,6 +37,7 @@ const translations: Record<
     pageTitle: '兑换优惠码',
     placeholder: 'PROMOCODE',
     redeemButton: '兑换',
+    redeemMore: '兑换更多',
     successTitle: '兑换成功',
     failedTitle: '兑换失败',
     tryAgain: '再试一次',

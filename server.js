@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,8 +11,8 @@ const distPath = path.join(__dirname, 'dist');
 // 1) /config.js 优先：运行时配置，不被静态或 SPA fallback 吃掉
 app.get('/config.js', (_req, res) => {
   const config = {
-    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || '',
-    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || '',
+    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '',
+    VITE_SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '',
     GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   };
   const body = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(config)};`;
