@@ -17,24 +17,37 @@ function getSupabaseConfig(): { url: string; anonKey: string } {
   return { url, anonKey };
 }
 
-let client: SupabaseClient | null = null;
+let _client: SupabaseClient | null = null;
+function getClient(): SupabaseClient {
+  if (!_client) {
+    const { url, anonKey } = getSupabaseConfig();
+    if (!url || !anonKey) {
+      if (typeof window !== 'undefined') {
+        console.warn(
+          '[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Set in .env (local) or Cloud Run env (production).'
+        );
+      }
+    }
+    _client = createClient(url || '', anonKey || '');
+  }
+  return _client;
+}
+
+/** 单例 Supabase 客户端。本地用 import.meta.env，生产用 window.__RUNTIME_CONFIG__（/config.js）。不写死 key。 */
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    return (getClient() as Record<string, unknown>)[prop as string];
+  },
+});
 
 export function isSupabaseConfigured(): boolean {
   const { url, anonKey } = getSupabaseConfig();
   return Boolean(url && anonKey);
 }
 
+/** @deprecated 请直接 import { supabase } from '@/lib/supabaseClient' */
 export function getSupabase(): SupabaseClient {
-  if (!client) {
-    const { url, anonKey } = getSupabaseConfig();
-    if (!url || !anonKey) {
-      throw new Error(
-        'Redeem is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY as Cloud Run environment variables (or in .env for local dev).'
-      );
-    }
-    client = createClient(url, anonKey);
-  }
-  return client;
+  return getClient();
 }
 
 /** 券模板：coupon_templates 表，用于展示「这类券是什么」 */
@@ -52,7 +65,7 @@ export type RedeemResult =
 
 /** Call RPC redeem_code(p_code, p_context, p_data). Returns template code name on success. */
 export async function redeemCode(codeText: string): Promise<RedeemResult> {
-  const supabase = getSupabase();
+  const supabase = getClient();
   const { data, error } = await supabase.rpc('redeem_code', {
     p_code: codeText.trim(),
     p_context: null,
@@ -92,7 +105,7 @@ export async function redeemCode(codeText: string): Promise<RedeemResult> {
 export async function getCouponTemplate(
   templateCodeName: string
 ): Promise<CouponTemplate | null> {
-  const supabase = getSupabase();
+  const supabase = getClient();
   const { data, error } = await supabase
     .from('coupon_templates')
     .select('title, description, terms, code_name, icon')
@@ -117,7 +130,7 @@ export async function getCouponTemplate(
 
 /** Fallback: verify-only. Query codes + code_benefits (coupon) + coupon_templates. */
 export async function verifyCodeOnly(codeText: string): Promise<RedeemResult & { template?: CouponTemplate }> {
-  const supabase = getSupabase();
+  const supabase = getClient();
   const code = codeText.trim();
   if (!code) return { ok: false, errorCode: 'CODE_NOT_FOUND' };
 
@@ -189,8 +202,7 @@ export function trackAnonymousRedemption(payload: {
   code_id?: string;
 }): void {
   try {
-    const supabase = getSupabase();
-    supabase
+    getClient()
       .from('anonymous_redemptions')
       .insert({
         code_text: payload.code_text.trim(),
