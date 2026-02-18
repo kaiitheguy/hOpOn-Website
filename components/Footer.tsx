@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 export const Footer: React.FC = () => {
   const scrollToTop = (e: React.MouseEvent) => {
@@ -23,7 +24,7 @@ export const Footer: React.FC = () => {
                <h4 className="font-mono text-xs uppercase tracking-widest text-white/50 mb-8">LEGAL</h4>
                <ul className="space-y-4 font-display font-bold text-lg uppercase text-white">
                   <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Terms</a></li>
-                  <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Privacy</a></li>
+                  <li><Link to="/privacy" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Privacy</Link></li>
                   <li><a href="#" className="hover:opacity-70 hover:underline underline-offset-4 decoration-1 transition-all">Cookies</a></li>
               </ul>
           </div>
