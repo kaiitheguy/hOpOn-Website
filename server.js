@@ -24,8 +24,11 @@ app.get('/config.js', (_req, res) => {
 // 2) 静态文件（dist）
 app.use(express.static(distPath, { index: false }));
 
-// 3) SPA fallback：其余请求返回 index.html
-app.get('*', (_req, res) => {
+// 3) SPA fallback：仅当请求路径无扩展名时返回 index.html，避免 /assets/*.js 等被误伤
+app.get('*', (req, res) => {
+  if (path.extname(req.path)) {
+    return res.status(404).end();
+  }
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
