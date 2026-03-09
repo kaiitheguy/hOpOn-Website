@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
-import type { CouponTemplate } from '../lib/supabaseClient';
+import type { ValidateOrRedeemPayload } from '../lib/supabaseClient';
 import { getErrorMessage } from '../i18n';
 import type { Locale } from '../i18n';
 
@@ -26,8 +26,8 @@ export type RedeemCardProps = {
   onRedeem: () => void;
   onReset: () => void;
   texts: RedeemCardTexts;
-  coupon: CouponTemplate | null;
-  errorCode?: string;
+  result: ValidateOrRedeemPayload | null;
+  errorReason?: string;
   configured: boolean;
   locale: Locale;
 };
@@ -39,8 +39,8 @@ export const RedeemCard: React.FC<RedeemCardProps> = ({
   onRedeem,
   onReset,
   texts: t,
-  coupon,
-  errorCode = 'UNKNOWN',
+  result,
+  errorReason = 'UNKNOWN',
   configured,
   locale,
 }) => {
@@ -81,16 +81,27 @@ export const RedeemCard: React.FC<RedeemCardProps> = ({
               {t.successTitle}
             </span>
           </div>
-          {coupon && (
+          {result && (
             <div className="border-t border-black/20 pt-4 space-y-2 text-sm">
-              {coupon.title && (
-                <p className="font-display font-bold text-hopon-black">{coupon.title}</p>
+              {(result.title || result.description) && (
+                <>
+                  {result.title && (
+                    <p className="font-display font-bold text-hopon-black">{result.title}</p>
+                  )}
+                  {result.description && (
+                    <p className="text-black/80">{result.description}</p>
+                  )}
+                </>
               )}
-              {coupon.description && (
-                <p className="text-black/80">{coupon.description}</p>
-              )}
-              {coupon.terms && (
-                <p className="text-black/60 text-xs">{coupon.terms}</p>
+              {result.benefits?.length > 0 && (
+                <ul className="list-disc pl-6 space-y-1 text-black/80">
+                  {result.benefits.map((b, i) => {
+                    if (!b || typeof b !== 'object') return null;
+                    const text = b.title ?? b.description ?? (b.type === '自定义效果' ? '' : b.type);
+                    if (!text) return null;
+                    return <li key={i}>{text}</li>;
+                  })}
+                </ul>
               )}
             </div>
           )}
@@ -112,7 +123,7 @@ export const RedeemCard: React.FC<RedeemCardProps> = ({
             </span>
           </div>
           <p className="text-sm text-black/80">
-            {getErrorMessage(locale, errorCode)}
+            {getErrorMessage(locale, errorReason)}
           </p>
           <button
             type="button"

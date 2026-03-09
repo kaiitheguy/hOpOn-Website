@@ -50,149 +50,90 @@ export function getSupabase(): SupabaseClient {
   return getClient();
 }
 
-/** 券模板：coupon_templates 表，用于展示「这类券是什么」 */
-export type CouponTemplate = {
-  title: string | null;
-  description: string | null;
-  terms: string | null;
-  code_name?: string;
-  icon?: string;
+/** validate_code / redeem_code 返回的权益项 */
+export type CodeBenefit = {
+  type: string;
+  value?: unknown;
+  title?: string | null;
+  description?: string | null;
 };
 
-export type RedeemResult =
-  | { ok: true; templateCodeName: string }
-  | { ok: false; errorCode: string; rawMessage?: string };
+/** validate_code / redeem_code 成功时返回的可直接展示结构（不再需要查 coupon_templates） */
+export type ValidateOrRedeemPayload = {
+  valid?: boolean;
+  success?: boolean;
+  code_type: string | null;
+  code_id: string | null;
+  title: string | null;
+  description: string | null;
+  benefits: CodeBenefit[];
+  reason?: string;
+  redemption_id?: string;
+};
 
-/** Call RPC redeem_code(p_code, p_context, p_data). Returns template code name on success. */
-export async function redeemCode(codeText: string): Promise<RedeemResult> {
+export type ValidateOrRedeemResult =
+  | { ok: true; data: ValidateOrRedeemPayload }
+  | { ok: false; reason: string };
+
+/** 将 RPC 返回的 JSONB 转为统一结果；失败时用 reason。支持 valid/success/ok 任一为 true，或有效载荷在 data 里。 */
+function normalizeRpcResponse(raw: unknown): ValidateOrRedeemResult {
+  let d = raw as Record<string, unknown> | null;
+  if (!d || typeof d !== 'object') {
+    return { ok: false, reason: 'invalid_code' };
+  }
+  if (d.data != null && typeof d.data === 'object' && !Array.isArray(d.data)) {
+    d = d.data as Record<string, unknown>;
+  }
+  const valid = d.valid === true || d.success === true || d.ok === true;
+  const reason = typeof d.reason === 'string' ? d.reason : 'invalid_code';
+  if (valid) {
+    const payload: ValidateOrRedeemPayload = {
+      valid: d.valid === true,
+      success: d.success === true,
+      code_type: (d.code_type as string | null) ?? null,
+      code_id: (d.code_id as string | null) ?? null,
+      title: (d.title as string | null) ?? null,
+      description: (d.description as string | null) ?? null,
+      benefits: Array.isArray(d.benefits)
+        ? (d.benefits as CodeBenefit[]).map((b) => ({
+            type: typeof b?.type === 'string' ? b.type : '',
+            value: (b as CodeBenefit).value,
+            title: (b as CodeBenefit).title ?? null,
+            description: (b as CodeBenefit).description ?? null,
+          }))
+        : [],
+      reason: reason,
+      redemption_id: d.redemption_id as string | undefined,
+    };
+    return { ok: true, data: payload };
+  }
+  return { ok: false, reason };
+}
+
+/** 仅校验码，不兑换。RPC: validate_code(p_code)。 */
+export async function validateCode(codeText: string): Promise<ValidateOrRedeemResult> {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc('validate_code', {
+    p_code: codeText.trim(),
+  });
+  if (error) {
+    console.error('[validate_code RPC error]', error.message, error);
+    return { ok: false, reason: 'invalid_code' };
+  }
+  return normalizeRpcResponse(data);
+}
+
+/** 校验并兑换。RPC: redeem_code(p_code)。要求已登录；未登录时返回 reason: not_authenticated。 */
+export async function redeemCode(codeText: string): Promise<ValidateOrRedeemResult> {
   const supabase = getClient();
   const { data, error } = await supabase.rpc('redeem_code', {
     p_code: codeText.trim(),
-    p_context: null,
-    p_data: null,
   });
-
   if (error) {
-    // Debug: always log full RPC error to console
-    console.error('[redeem_code RPC error]', {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code,
-    });
-    const msg = (error.message || '').toUpperCase();
-    let errorCode = 'UNKNOWN';
-    if (msg.includes('NOT_FOUND') || msg.includes('CODE_NOT_FOUND')) errorCode = 'CODE_NOT_FOUND';
-    else if (msg.includes('INACTIVE') || msg.includes('CODE_INACTIVE')) errorCode = 'CODE_INACTIVE';
-    else if (msg.includes('EXPIRED') || msg.includes('CODE_EXPIRED')) errorCode = 'CODE_EXPIRED';
-    else if (msg.includes('MAX_USES') || msg.includes('USED_UP')) errorCode = 'CODE_MAX_USES';
-    return { ok: false, errorCode, rawMessage: error.message };
+    console.error('[redeem_code RPC error]', error.message, error);
+    return { ok: false, reason: 'invalid_code' };
   }
-
-  const name = data?.template_code_name ?? data?.templateCodeName ?? data;
-  if (name && typeof name === 'string') {
-    return { ok: true, templateCodeName: name };
-  }
-  const rpcError = (data as { ok?: boolean; error?: string } | null)?.error;
-  if (rpcError === 'not_authenticated') {
-    return { ok: false, errorCode: 'NOT_AUTHENTICATED', rawMessage: rpcError };
-  }
-  console.warn('[redeem_code] unexpected data shape', data);
-  return { ok: false, errorCode: 'UNKNOWN', rawMessage: 'RPC returned no template code name' };
-}
-
-/** 用 code_name 查 coupon_templates，取 title、description、terms 等。表列为 terms（无 term）。 */
-export async function getCouponTemplate(
-  templateCodeName: string
-): Promise<CouponTemplate | null> {
-  const supabase = getClient();
-  const { data, error } = await supabase
-    .from('coupon_templates')
-    .select('title, description, terms, code_name, icon')
-    .eq('code_name', templateCodeName)
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    console.error('[getCouponTemplate]', error.message, error);
-    return null;
-  }
-  if (!data) return null;
-  const row = data as Record<string, unknown>;
-  return {
-    title: (row.title as string) ?? null,
-    description: (row.description as string) ?? null,
-    terms: (row.terms as string) ?? null,
-    code_name: row.code_name as string | undefined,
-    icon: row.icon as string | undefined,
-  };
-}
-
-/** Fallback: verify-only. Query codes + code_benefits (coupon) + coupon_templates. */
-export async function verifyCodeOnly(codeText: string): Promise<RedeemResult & { template?: CouponTemplate }> {
-  const supabase = getClient();
-  const code = codeText.trim();
-  if (!code) return { ok: false, errorCode: 'CODE_NOT_FOUND' };
-
-  // 只查 codes 表的 code 列（表里没有 code_text 列，不要用 code_text 会 400）
-  const { data: codeRow, error: codeError } = await supabase
-    .from('codes')
-    .select('id, is_active, valid_from, valid_until, max_uses, used_count')
-    .eq('code', code)
-    .maybeSingle();
-
-  if (codeError) {
-    console.error('[verifyCodeOnly] codes 查询失败', { error: codeError, queryCode: code });
-    return { ok: false, errorCode: 'CODE_NOT_FOUND' };
-  }
-  if (!codeRow) {
-    console.warn('[verifyCodeOnly] codes 无匹配行 (code 列)', { queryCode: code, hint: '若 Supabase 返回 200 但无数据，多半是 codes 表 RLS 未允许 anon SELECT，需在 Table Editor → codes → RLS 里为 anon 添加 SELECT policy' });
-    return { ok: false, errorCode: 'CODE_NOT_FOUND' };
-  }
-  if (codeRow.is_active === false) return { ok: false, errorCode: 'CODE_INACTIVE' };
-
-  const now = new Date().toISOString();
-  if (codeRow.valid_from && codeRow.valid_from > now) return { ok: false, errorCode: 'CODE_EXPIRED' };
-  if (codeRow.valid_until && codeRow.valid_until < now) return { ok: false, errorCode: 'CODE_EXPIRED' };
-  if (
-    typeof codeRow.max_uses === 'number' &&
-    typeof codeRow.used_count === 'number' &&
-    codeRow.used_count >= codeRow.max_uses
-  ) {
-    return { ok: false, errorCode: 'CODE_MAX_USES' };
-  }
-
-  const { data: benefit, error: benefitError } = await supabase
-    .from('code_benefits')
-    .select('id, code_id, benefit_type, benefit_value')
-    .eq('code_id', codeRow.id)
-    .eq('benefit_type', 'coupon')
-    .limit(1)
-    .maybeSingle();
-
-  if (benefitError) {
-    console.error('[verifyCodeOnly] code_benefits 查询失败', { error: benefitError, codeId: codeRow.id });
-    return { ok: false, errorCode: 'UNKNOWN', rawMessage: benefitError.message };
-  }
-  if (!benefit) {
-    console.warn('[verifyCodeOnly] 该码没有 coupon 权益', { codeId: codeRow.id, hint: '在 code_benefits 表添加一条 code_id + benefit_type=coupon + benefit_value: { templateCodeName: "券的code_name" }' });
-    return { ok: false, errorCode: 'NO_COUPON_BENEFIT' };
-  }
-
-  const templateName =
-    (benefit.benefit_value as { templateCodeName?: string } | null)?.templateCodeName ?? null;
-  if (!templateName) {
-    console.warn('[verifyCodeOnly] benefit_value 缺少 templateCodeName', { benefit_value: benefit.benefit_value });
-    return { ok: false, errorCode: 'NO_COUPON_BENEFIT' };
-  }
-
-  const template = await getCouponTemplate(templateName);
-  return {
-    ok: true,
-    templateCodeName: templateName,
-    template: template ?? undefined,
-    code_id: codeRow.id,
-  };
+  return normalizeRpcResponse(data);
 }
 
 /** 记录未登录用户的 promocode 兑换（仅插入，不阻塞 UI）。 */

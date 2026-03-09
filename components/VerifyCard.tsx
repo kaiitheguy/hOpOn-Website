@@ -2,13 +2,8 @@ import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import type { Locale } from '../i18n';
 import { getT, getErrorMessage } from '../i18n';
-import type { CouponTemplate } from '../lib/supabaseClient';
-import {
-  isSupabaseConfigured,
-  redeemCode,
-  getCouponTemplate,
-  verifyCodeOnly,
-} from '../lib/supabaseClient';
+import type { ValidateOrRedeemPayload } from '../lib/supabaseClient';
+import { isSupabaseConfigured, validateCode } from '../lib/supabaseClient';
 
 type Status = 'idle' | 'loading' | 'success' | 'failed';
 
@@ -19,10 +14,8 @@ type VerifyCardProps = {
 export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<Status>('idle');
-  const [benefit, setBenefit] = useState<CouponTemplate | null>(null);
-  const [errorCode, setErrorCode] = useState<string>('UNKNOWN');
-  const [rawMessage, setRawMessage] = useState<string | undefined>(undefined);
-  const [rpcAvailable, setRpcAvailable] = useState<boolean | null>(null);
+  const [result, setResult] = useState<ValidateOrRedeemPayload | null>(null);
+  const [errorReason, setErrorReason] = useState<string>('UNKNOWN');
 
   const t = getT(locale);
 
@@ -30,56 +23,22 @@ export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
     const input = code.trim();
     if (!input) return;
     setStatus('loading');
-    setBenefit(null);
-    setErrorCode('UNKNOWN');
-    setRawMessage(undefined);
+    setResult(null);
+    setErrorReason('UNKNOWN');
 
     try {
-      let result: Awaited<ReturnType<typeof redeemCode>>;
-      try {
-        result = await redeemCode(input);
-        if (rpcAvailable === null) setRpcAvailable(true);
-      } catch (err) {
-        console.error('[VerifyCard] redeemCode threw', err);
-        if (rpcAvailable === null) setRpcAvailable(false);
-        const fallback = await verifyCodeOnly(input);
-        if (fallback.ok) {
-          if (fallback.template) setBenefit(fallback.template);
-          else setBenefit({ title: fallback.templateCodeName, description: null, terms: null });
-          setStatus('success');
-          return;
-        }
-        setErrorCode(fallback.errorCode);
-        setRawMessage(undefined);
-        setStatus('failed');
-        return;
-      }
-
-      if (result.ok) {
-        const template = await getCouponTemplate(result.templateCodeName);
-        setBenefit(template ?? { title: result.templateCodeName, description: null, terms: null });
+      // 暂时仅校验、不测 session
+      const validateResult = await validateCode(input);
+      if (validateResult.ok) {
+        setResult(validateResult.data);
         setStatus('success');
-      } else if (result.errorCode === 'NOT_AUTHENTICATED') {
-        // 不要求登录：用仅验证流程展示该码对应的券信息（不写入 user_coupons）
-        const fallback = await verifyCodeOnly(input);
-        if (fallback.ok) {
-          if (fallback.template) setBenefit(fallback.template);
-          else setBenefit({ title: fallback.templateCodeName, description: null, terms: null });
-          setStatus('success');
-        } else {
-          setErrorCode(fallback.errorCode);
-          setRawMessage(undefined);
-          setStatus('failed');
-        }
       } else {
-        setErrorCode(result.errorCode);
-        setRawMessage(result.rawMessage);
+        setErrorReason(validateResult.ok === false ? validateResult.reason : 'invalid_code');
         setStatus('failed');
       }
     } catch (err) {
       console.error('[VerifyCard] unexpected error', err);
-      setErrorCode('UNKNOWN');
-      setRawMessage(err instanceof Error ? err.message : String(err));
+      setErrorReason('invalid_code');
       setStatus('failed');
     }
   };
@@ -87,8 +46,7 @@ export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
   const tryAgain = () => {
     setStatus('idle');
     setCode('');
-    setBenefit(null);
-    setRawMessage(undefined);
+    setResult(null);
   };
 
   const configured = isSupabaseConfigured();
@@ -127,18 +85,29 @@ export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
               {t.successTitle}
             </span>
           </div>
-          {benefit && (
+          {result && (
             <div className="border-t border-black/20 pt-4 space-y-2 text-sm">
-              {benefit.title && (
-                <p className="font-display font-bold text-hopon-black">
-                  {benefit.title}
-                </p>
+              {(result.title || result.description) && (
+                <>
+                  {result.title && (
+                    <p className="font-display font-bold text-hopon-black">
+                      {result.title}
+                    </p>
+                  )}
+                  {result.description && (
+                    <p className="text-black/80">{result.description}</p>
+                  )}
+                </>
               )}
-              {benefit.description && (
-                <p className="text-black/80">{benefit.description}</p>
-              )}
-              {benefit.terms && (
-                <p className="text-black/60 text-xs">{benefit.terms}</p>
+              {result.benefits?.length > 0 && (
+                <ul className="list-disc pl-6 space-y-1 text-black/80">
+                  {result.benefits.map((b, i) => {
+                    if (!b || typeof b !== 'object') return null;
+                    const text = b.title ?? b.description ?? (b.type === '自定义效果' ? '' : b.type);
+                    if (!text) return null;
+                    return <li key={i}>{text}</li>;
+                  })}
+                </ul>
               )}
             </div>
           )}
@@ -147,7 +116,7 @@ export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
             onClick={tryAgain}
             className="text-sm font-mono uppercase tracking-wider text-hopon-black underline underline-offset-4 hover:text-hopon-red"
           >
-            {t.redeemButton}
+            {t.redeemMore}
           </button>
         </div>
       ) : (
@@ -159,13 +128,8 @@ export const VerifyCard: React.FC<VerifyCardProps> = ({ locale }) => {
             </span>
           </div>
           <p className="text-sm text-black/80">
-            {getErrorMessage(locale, errorCode)}
+            {getErrorMessage(locale, errorReason)}
           </p>
-          <div className="text-xs font-mono text-black/60 bg-black/5 p-3 border border-black/10 break-all">
-            <span className="block font-display font-bold normal-case mb-1">Debug:</span>
-            <span className="block">errorCode: {errorCode}</span>
-            {rawMessage && <span className="block mt-1">detail: {rawMessage}</span>}
-          </div>
           <button
             type="button"
             onClick={tryAgain}

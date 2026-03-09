@@ -30,7 +30,21 @@ const translations: Record<
       CODE_MAX_USES: 'Code used up',
       NOT_AUTHENTICATED: 'Please sign in to redeem',
       NO_COUPON_BENEFIT: 'This code has no coupon benefit configured',
+      NOT_YET_VALID: 'Code not yet valid',
+      ALREADY_REDEEMED: 'Already redeemed',
+      CONTEXT_NOT_ALLOWED: 'This code cannot be used here',
       UNKNOWN: 'Something went wrong',
+      // API reason keys (used by validate_code / redeem_code)
+      invalid_code: 'Invalid or not found',
+      not_found: 'Invalid or not found',
+      inactive: 'Code inactive',
+      not_yet_valid: 'Code not yet valid',
+      expired: 'Code expired',
+      exhausted: 'Code used up',
+      maxed_out: 'Code used up',
+      already_redeemed: 'Already redeemed',
+      context_not_allowed: 'This code cannot be used here',
+      not_authenticated: 'Please sign in to redeem',
     },
   },
   zh: {
@@ -49,7 +63,20 @@ const translations: Record<
       CODE_MAX_USES: '邀请码已用完',
       NOT_AUTHENTICATED: '请先登录后再兑换',
       NO_COUPON_BENEFIT: '该码未配置券权益',
+      NOT_YET_VALID: '邀请码尚未生效',
+      ALREADY_REDEEMED: '您已兑换过该码',
+      CONTEXT_NOT_ALLOWED: '该码在当前场景不可用',
       UNKNOWN: '出错了，请重试',
+      invalid_code: '无效或不存在',
+      not_found: '无效或不存在',
+      inactive: '邀请码已停用',
+      not_yet_valid: '邀请码尚未生效',
+      expired: '邀请码已过期',
+      exhausted: '邀请码已用完',
+      maxed_out: '邀请码已用完',
+      already_redeemed: '您已兑换过该码',
+      context_not_allowed: '该码在当前场景不可用',
+      not_authenticated: '请先登录后再兑换',
     },
   },
 };
@@ -58,6 +85,7 @@ export function getT(locale: Locale) {
   return translations[locale] ?? translations.en;
 }
 
+/** errorCode 可为旧 key（CODE_NOT_FOUND）或 API 返回的 reason（invalid_code, not_authenticated 等） */
 export function getErrorMessage(locale: Locale, errorCode: string): string {
   const t = getT(locale);
   return t.errors[errorCode] ?? t.errors.UNKNOWN;

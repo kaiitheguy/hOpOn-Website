@@ -3,87 +3,36 @@ import { useLocale } from '../i18n';
 import { getT } from '../i18n';
 import { BrandHeader } from '../components/BrandHeader';
 import { RedeemCard, type RedeemState } from '../components/RedeemCard';
-import type { CouponTemplate } from '../lib/supabaseClient';
-import {
-  isSupabaseConfigured,
-  redeemCode,
-  getCouponTemplate,
-  verifyCodeOnly,
-  trackAnonymousRedemption,
-} from '../lib/supabaseClient';
+import type { ValidateOrRedeemPayload } from '../lib/supabaseClient';
+import { isSupabaseConfigured, validateCode } from '../lib/supabaseClient';
 
 export const Verify: React.FC = () => {
   const [locale, setLocale, t] = useLocale('en');
   const [code, setCode] = useState('');
   const [status, setStatus] = useState<RedeemState>('idle');
-  const [benefit, setBenefit] = useState<CouponTemplate | null>(null);
-  const [errorCode, setErrorCode] = useState<string>('UNKNOWN');
-  const [rawMessage, setRawMessage] = useState<string | undefined>(undefined);
-  const [rpcAvailable, setRpcAvailable] = useState<boolean | null>(null);
+  const [benefit, setBenefit] = useState<ValidateOrRedeemPayload | null>(null);
+  const [errorReason, setErrorReason] = useState<string>('UNKNOWN');
 
   const runRedeem = async () => {
     const input = code.trim();
     if (!input) return;
     setStatus('loading');
     setBenefit(null);
-    setErrorCode('UNKNOWN');
-    setRawMessage(undefined);
+    setErrorReason('UNKNOWN');
 
     try {
-      let result: Awaited<ReturnType<typeof redeemCode>>;
-      try {
-        result = await redeemCode(input);
-        if (rpcAvailable === null) setRpcAvailable(true);
-      } catch (err) {
-        console.error('[Verify] redeemCode threw', err);
-        if (rpcAvailable === null) setRpcAvailable(false);
-        const fallback = await verifyCodeOnly(input);
-        if (fallback.ok) {
-          if (fallback.template) setBenefit(fallback.template);
-          else setBenefit({ title: fallback.templateCodeName, description: null, terms: null });
-          setStatus('success');
-          trackAnonymousRedemption({
-            code_text: input,
-            template_code_name: fallback.templateCodeName,
-            code_id: fallback.code_id,
-          });
-          return;
-        }
-        setErrorCode(fallback.errorCode);
-        setRawMessage(undefined);
-        setStatus('failed');
-        return;
-      }
-
-      if (result.ok) {
-        const template = await getCouponTemplate(result.templateCodeName);
-        setBenefit(template ?? { title: result.templateCodeName, description: null, terms: null });
+      // 暂时仅校验、不测 session，只调 validate_code
+      const validateResult = await validateCode(input);
+      if (validateResult.ok) {
+        setBenefit(validateResult.data);
         setStatus('success');
-      } else if (result.errorCode === 'NOT_AUTHENTICATED') {
-        const fallback = await verifyCodeOnly(input);
-        if (fallback.ok) {
-          if (fallback.template) setBenefit(fallback.template);
-          else setBenefit({ title: fallback.templateCodeName, description: null, terms: null });
-          setStatus('success');
-          trackAnonymousRedemption({
-            code_text: input,
-            template_code_name: fallback.templateCodeName,
-            code_id: fallback.code_id,
-          });
-        } else {
-          setErrorCode(fallback.errorCode);
-          setRawMessage(undefined);
-          setStatus('failed');
-        }
       } else {
-        setErrorCode(result.errorCode);
-        setRawMessage(result.rawMessage);
+        setErrorReason(validateResult.ok === false ? validateResult.reason : 'invalid_code');
         setStatus('failed');
       }
     } catch (err) {
       console.error('[Verify] unexpected error', err);
-      setErrorCode('UNKNOWN');
-      setRawMessage(err instanceof Error ? err.message : String(err));
+      setErrorReason('invalid_code');
       setStatus('failed');
     }
   };
@@ -92,7 +41,6 @@ export const Verify: React.FC = () => {
     setStatus('idle');
     setCode('');
     setBenefit(null);
-    setRawMessage(undefined);
   };
 
   const configured = isSupabaseConfigured();
@@ -141,8 +89,8 @@ export const Verify: React.FC = () => {
               onRedeem={runRedeem}
               onReset={tryAgain}
               texts={t}
-              coupon={benefit}
-              errorCode={errorCode}
+              result={benefit}
+              errorReason={errorReason}
               configured={configured}
               locale={locale}
             />
