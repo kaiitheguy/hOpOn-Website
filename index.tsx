@@ -1,12 +1,26 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { MerchantLocaleProvider } from './context/MerchantLocaleContext';
 import App from './App';
 import { Verify } from './pages/Verify';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { AuthCallback } from './pages/AuthCallback';
 import { ResetPassword } from './pages/ResetPassword';
 import { Pending } from './pages/Pending';
+import { MerchantAuthGate } from './components/merchant/MerchantAuthGate';
+import { MerchantLayout } from './components/merchant/MerchantLayout';
+import { MerchantLogin } from './pages/merchant/MerchantLogin';
+import { MerchantSignup } from './pages/merchant/MerchantSignup';
+import { MerchantHome } from './pages/merchant/MerchantHome';
+import { MerchantReview } from './pages/merchant/MerchantReview';
+import { MerchantHunt } from './pages/merchant/MerchantHunt';
+import { MerchantAchievements } from './pages/merchant/MerchantAchievements';
+import { MerchantProfile } from './pages/merchant/MerchantProfile';
+import { CampaignCreate } from './pages/merchant/CampaignCreate';
+import { CampaignDetail } from './pages/merchant/CampaignDetail';
+import { MerchantNotifications } from './pages/merchant/MerchantNotifications';
+import { CreatorProfile } from './pages/merchant/CreatorProfile';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -24,6 +38,33 @@ root.render(
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/pending" element={<Pending />} />
+
+        {/* Merchant (restaurant) app */}
+        <Route path="/merchant" element={<MerchantLocaleProvider><Outlet /></MerchantLocaleProvider>}>
+          <Route path="login" element={<MerchantLogin />} />
+          <Route path="signup" element={<MerchantSignup />} />
+          <Route
+            path=""
+            element={
+              <MerchantAuthGate>
+                <MerchantLayout />
+              </MerchantAuthGate>
+            }
+          >
+            <Route index element={<MerchantHome />} />
+            <Route path="review" element={<MerchantReview />} />
+            <Route path="hunt" element={<MerchantHunt />} />
+            <Route path="achievements" element={<MerchantAchievements />} />
+            <Route path="profile" element={<MerchantProfile />} />
+            <Route path="campaign/new" element={<CampaignCreate />} />
+            <Route path="campaign/:id" element={<CampaignDetail />} />
+            <Route path="notifications" element={<MerchantNotifications />} />
+            <Route path="creator/:id" element={<CreatorProfile />} />
+          </Route>
+          <Route path="campaigns" element={<Navigate to="/merchant" replace />} />
+          <Route path="applicants" element={<Navigate to="/merchant/review" replace />} />
+          <Route path="deliverables" element={<Navigate to="/merchant/review" replace />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
