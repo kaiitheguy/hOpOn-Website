@@ -15,8 +15,9 @@ export const Footer: React.FC = () => {
           <div className="p-8 md:p-12 border-b md:border-b-0 md:border-r border-white/20">
               <h4 className="font-mono text-xs uppercase tracking-widest text-white/50 mb-8">Platform</h4>
               <ul className="space-y-4 font-display font-bold text-lg uppercase">
-                  <li><a href="#mission" className="hover:text-hopon-red transition-colors">Mission</a></li>
-                  <li><a href="#workflow" className="hover:text-hopon-red transition-colors">Workflow</a></li>
+                  <li><a href="/#mission" className="hover:text-hopon-red transition-colors">Mission</a></li>
+                  <li><a href="/#workflow" className="hover:text-hopon-red transition-colors">Workflow</a></li>
+                  <li><Link to="/discover/best-asian-dessert-nyc" className="hover:text-hopon-red transition-colors">Discover</Link></li>
               </ul>
           </div>
           

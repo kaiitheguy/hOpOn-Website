@@ -4,44 +4,55 @@ import { getCurrentUserId, getRestaurantProfile, updateRestaurantProfile, signOu
 import type { Restaurant } from '../../lib/merchant/types';
 import { SettingsSheet } from '../../components/merchant/SettingsSheet';
 import { isSafeImageUrl } from '../../lib/safeImageUrl';
+import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 
-const copy = {
-  title: '商家资料',
-  edit: '编辑',
-  cancel: '取消',
-  save: '保存',
-  basicInfo: '基本信息',
-  name: '商家名称',
-  location: '位置',
-  locationPlaceholder: '例如：SoHo / Midtown / Williamsburg',
-  description: '简介',
-  descriptionPlaceholder: '关于你的商家...',
-  restaurantImage: '商家图片',
-  noImages: '暂无图片',
-  categories: '标签',
-  mainCategory: '主营类别',
-  cuisineTags: '特色标签 (逗号分隔)',
-  cuisineTagsPlaceholder: '例如: 辣, 点心',
-  internal: '内部信息',
-  contactMethod: '方式',
-  contactWechat: '微信',
-  contactPhone: '电话',
-  contactValue: '联系方式',
-  contactValuePlaceholder: 'WeChat ID 或手机号',
-  socialMedia: '社交媒体',
-  instagramHandle: 'Instagram',
-  xhsHandle: '小红书账号',
-  xhsUrl: '小红书链接',
-  douyinHandle: '抖音',
-  tiktokHandle: 'TikTok',
-  notes: '备注',
-  notesPlaceholder: '内部备注...',
-  noName: '未设置名称',
-  noLocation: '未设置',
-  saved: '已保存',
-};
+function getCopy(isZh: boolean) {
+  return {
+    title: isZh ? '商家资料' : 'Profile',
+    edit: isZh ? '编辑' : 'Edit',
+    cancel: isZh ? '取消' : 'Cancel',
+    save: isZh ? '保存' : 'Save',
+    saving: isZh ? '保存中…' : 'Saving…',
+    basicInfo: isZh ? '基本信息' : 'Basic info',
+    name: isZh ? '商家名称' : 'Merchant name',
+    location: isZh ? '位置' : 'Location',
+    locationPlaceholder: isZh ? '例如：SoHo / Midtown / Williamsburg' : 'e.g. SoHo, Midtown, Williamsburg',
+    description: isZh ? '简介' : 'Description',
+    descriptionPlaceholder: isZh ? '关于你的商家...' : 'About your business...',
+    restaurantImage: isZh ? '商家图片' : 'Images',
+    noImages: isZh ? '暂无图片' : 'No images',
+    categories: isZh ? '标签' : 'Tags',
+    mainCategory: isZh ? '主营类别' : 'Category',
+    cuisineTags: isZh ? '特色标签 (逗号分隔)' : 'Cuisine tags (comma separated)',
+    cuisineTagsPlaceholder: isZh ? '例如: 辣, 点心' : 'e.g. Spicy, Dim Sum',
+    internal: isZh ? '内部信息' : 'Contact & internal',
+    contactMethod: isZh ? '方式' : 'Method',
+    contactWechat: isZh ? '微信' : 'WeChat',
+    contactPhone: isZh ? '电话' : 'Phone',
+    contactValue: isZh ? '联系方式' : 'Contact',
+    contactValuePlaceholder: isZh ? 'WeChat ID 或手机号' : 'WeChat ID or phone number',
+    socialMedia: isZh ? '社交媒体' : 'Social media',
+    instagramHandle: 'Instagram',
+    xhsHandle: isZh ? '小红书账号' : 'Xiaohongshu',
+    xhsUrl: isZh ? '小红书链接' : 'Xiaohongshu URL',
+    douyinHandle: isZh ? '抖音' : 'Douyin',
+    tiktokHandle: 'TikTok',
+    notes: isZh ? '备注' : 'Notes',
+    notesPlaceholder: isZh ? '内部备注...' : 'Internal notes...',
+    noName: isZh ? '未设置名称' : 'No name set',
+    noLocation: isZh ? '未设置' : 'Not set',
+    saved: isZh ? '已保存' : 'Saved',
+    loading: isZh ? '加载中…' : 'Loading…',
+    notFound: isZh ? '未找到商家资料。' : 'Profile not found.',
+    settingsAria: isZh ? '设置' : 'Settings',
+    deleteConfirm1: isZh ? '确定要删除账号吗？此操作不可恢复。' : 'Delete your account? This cannot be undone.',
+    deleteConfirm2: isZh ? '最终确认：确定要继续吗？' : 'Final confirmation: continue?',
+  };
+}
 
 export const MerchantProfile: React.FC = () => {
+  const { isZh, setLocale } = useMerchantLocale();
+  const copy = getCopy(isZh);
   const [profile, setProfile] = useState<Restaurant | null>(null);
   const [originalProfile, setOriginalProfile] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +60,6 @@ export const MerchantProfile: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [isZh, setIsZh] = useState(true);
 
   const loadData = async () => {
     const id = await getCurrentUserId();
@@ -114,8 +124,8 @@ export const MerchantProfile: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    if (window.confirm('确定要删除账号吗？此操作不可恢复。')) {
-      if (window.confirm('最终确认：确定要继续吗？')) {
+    if (window.confirm(copy.deleteConfirm1)) {
+      if (window.confirm(copy.deleteConfirm2)) {
         // TODO: call delete-account edge function
         signOut();
         window.location.href = '/merchant/login';
@@ -168,16 +178,16 @@ export const MerchantProfile: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="py-12 flex justify-center">
-        <p className="font-display font-bold text-hopon-black">加载中…</p>
+      <div className="py-12 flex justify-center w-full max-w-xl mx-auto">
+        <p className="font-display font-bold text-hopon-black">{copy.loading}</p>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="py-12 text-center">
-        <p className="text-black/80">未找到商家资料。</p>
+      <div className="py-12 text-center w-full max-w-xl mx-auto">
+        <p className="text-black/80">{copy.notFound}</p>
       </div>
     );
   }
@@ -187,7 +197,7 @@ export const MerchantProfile: React.FC = () => {
   const gallery = (profile.images ?? profile.gallery ?? []).filter((url: string) => isSafeImageUrl(url));
 
   return (
-    <div className="py-8 max-w-xl">
+    <div className="py-8 w-full max-w-xl mx-auto">
       <div className="flex justify-between items-center mb-8">
         <h1 className="font-display font-bold text-2xl uppercase tracking-tight text-hopon-black">
           {copy.title}
@@ -196,7 +206,7 @@ export const MerchantProfile: React.FC = () => {
           type="button"
           onClick={() => setSettingsOpen(true)}
           className="p-2 border-2 border-black rounded hover:bg-hopon-grey transition-colors"
-          aria-label="设置"
+          aria-label={copy.settingsAria}
         >
           <Settings className="w-5 h-5" />
         </button>
@@ -342,7 +352,7 @@ export const MerchantProfile: React.FC = () => {
             disabled={saving}
             className="flex-1 h-12 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors disabled:opacity-50"
           >
-            {saving ? '保存中…' : copy.save}
+            {saving ? copy.saving : copy.save}
           </button>
         </div>
       )}
@@ -360,7 +370,7 @@ export const MerchantProfile: React.FC = () => {
           setIsEditMode(true);
           setSettingsOpen(false);
         }}
-        onToggleLanguage={() => setIsZh((z) => !z)}
+        onToggleLanguage={() => setLocale(isZh ? 'en' : 'zh')}
         onLogout={handleLogout}
         onDeleteAccount={handleDeleteAccount}
         isZh={isZh}

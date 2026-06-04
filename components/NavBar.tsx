@@ -21,7 +21,7 @@ export const NavBar: React.FC = () => {
       <div className="flex justify-between items-center px-4 md:px-8 py-4 md:py-5 max-w-[1920px] mx-auto">
         
         {/* Logo Section */}
-        <div onClick={scrollToTop} className="flex items-center gap-3 group cursor-pointer">
+        <Link to="/" onClick={scrollToTop} className="flex items-center gap-3 group cursor-pointer">
             {/* Pixel Art Skewer Logo */}
             <div className="relative w-8 h-8 md:w-10 md:h-10 transition-transform duration-300 group-hover:rotate-12">
                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
@@ -44,16 +44,19 @@ export const NavBar: React.FC = () => {
                    / 串店
                 </span>
             </div>
-        </div>
+        </Link>
         
         {/* Links Section - RAD style: Bold, uppercase, minimal */}
-        <div className="flex items-center gap-6 md:gap-10">
-          <a href="#mission" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
+        <div className="flex items-center gap-4 md:gap-8">
+          <a href="/#mission" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Mission
           </a>
-          <a href="#workflow" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
+          <a href="/#workflow" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Workflow
           </a>
+          <Link to="/discover/best-asian-dessert-nyc" className="font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
+            Discover
+          </Link>
           <Link to="/verify" className="font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Redeem
           </Link>

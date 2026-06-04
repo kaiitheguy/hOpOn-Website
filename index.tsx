@@ -21,6 +21,8 @@ import { CampaignCreate } from './pages/merchant/CampaignCreate';
 import { CampaignDetail } from './pages/merchant/CampaignDetail';
 import { MerchantNotifications } from './pages/merchant/MerchantNotifications';
 import { CreatorProfile } from './pages/merchant/CreatorProfile';
+import { GeoMerchantPage } from './components/GeoMerchantPage';
+import { GeoDiscoveryPage } from './components/GeoDiscoveryPage';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -38,6 +40,8 @@ root.render(
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/pending" element={<Pending />} />
+        <Route path="/merchant/:slug" element={<GeoMerchantPage />} />
+        <Route path="/discover/:slug" element={<GeoDiscoveryPage />} />
 
         {/* Merchant (restaurant) app */}
         <Route path="/merchant" element={<MerchantLocaleProvider><Outlet /></MerchantLocaleProvider>}>

@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { GeoCTA, GeoDiscoveryPage, GeoFAQ, GeoMerchant } from './geoMockData';
 
 declare global {
   interface Window {
@@ -156,4 +157,168 @@ export function trackAnonymousRedemption(payload: {
   } catch {
     // 忽略：未配置 Supabase 或表不存在时不报错
   }
+}
+
+type JsonRecord = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is JsonRecord =>
+  Boolean(value && typeof value === 'object' && !Array.isArray(value));
+
+const asString = (value: unknown, fallback = ''): string =>
+  typeof value === 'string' ? value : fallback;
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const asFAQArray = (value: unknown): GeoFAQ[] =>
+  Array.isArray(value)
+    ? value
+        .filter(isRecord)
+        .map((item) => ({
+          question: asString(item.question),
+          answer: asString(item.answer),
+        }))
+        .filter((item) => item.question && item.answer)
+    : [];
+
+const asCTAArray = (value: unknown): GeoCTA[] =>
+  Array.isArray(value)
+    ? value
+        .filter(isRecord)
+        .map((item) => ({
+          label: asString(item.label),
+          href: asString(item.href),
+          variant: item.variant === 'secondary' ? 'secondary' : 'primary',
+        }))
+        .filter((item) => item.label && item.href)
+    : [];
+
+const pagePayload = (row: JsonRecord): JsonRecord => {
+  const nested =
+    (isRecord(row.content) && row.content) ||
+    (isRecord(row.data) && row.data) ||
+    (isRecord(row.page_data) && row.page_data) ||
+    (isRecord(row.generated_content) && row.generated_content) ||
+    {};
+
+  return {
+    ...row,
+    ...nested,
+  };
+};
+
+const pick = (source: JsonRecord, ...keys: string[]) => {
+  for (const key of keys) {
+    if (source[key] !== undefined && source[key] !== null) return source[key];
+  }
+  return undefined;
+};
+
+const normalizeMerchantPage = (row: JsonRecord): GeoMerchant | null => {
+  const source = pagePayload(row);
+  const slug = asString(pick(source, 'slug'));
+  const name = asString(pick(source, 'name', 'title', 'merchant_name'));
+
+  if (!slug || !name) return null;
+
+  return {
+    slug,
+    name,
+    category: asString(pick(source, 'category'), 'Local merchant'),
+    neighborhood: asString(pick(source, 'neighborhood'), 'New York'),
+    city: asString(pick(source, 'city'), 'NYC'),
+    address: asString(pick(source, 'address')),
+    priceRange: asString(pick(source, 'priceRange', 'price_range'), '$$'),
+    heroImage: asString(
+      pick(source, 'heroImage', 'hero_image', 'image_url', 'cover_image'),
+      'https://images.unsplash.com/photo-1551024506-0bccd828d307?q=80&w=1800&auto=format&fit=crop'
+    ),
+    seoTitle: asString(pick(source, 'seoTitle', 'seo_title'), `${name} | hOpOn`),
+    seoDescription: asString(
+      pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description'),
+      `Discover ${name} on hOpOn.`
+    ),
+    eyebrow: asString(pick(source, 'eyebrow'), 'Merchant guide'),
+    headline: asString(pick(source, 'headline'), `${name} on hOpOn.`),
+    summary: asString(pick(source, 'summary', 'description')),
+    highlights: asStringArray(pick(source, 'highlights')),
+    signatureItems: asStringArray(pick(source, 'signatureItems', 'signature_items')),
+    bestFor: asStringArray(pick(source, 'bestFor', 'best_for')),
+    faqs: asFAQArray(pick(source, 'faqs', 'faq')),
+    ctas: asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+  };
+};
+
+const normalizeDiscoveryPage = (row: JsonRecord): GeoDiscoveryPage | null => {
+  const source = pagePayload(row);
+  const slug = asString(pick(source, 'slug'));
+  const title = asString(pick(source, 'title', 'name'));
+
+  if (!slug || !title) return null;
+
+  const rawSections = pick(source, 'sections');
+  const sections = Array.isArray(rawSections)
+    ? rawSections
+        .filter(isRecord)
+        .map((item) => ({
+          heading: asString(item.heading, asString(item.title)),
+          body: asString(item.body, asString(item.description)),
+        }))
+        .filter((item) => item.heading && item.body)
+    : [];
+
+  return {
+    slug,
+    title,
+    seoTitle: asString(pick(source, 'seoTitle', 'seo_title'), `${title} | hOpOn Discovery`),
+    seoDescription: asString(
+      pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description', 'intro'),
+      `Discover ${title} on hOpOn.`
+    ),
+    eyebrow: asString(pick(source, 'eyebrow'), 'Discovery guide'),
+    headline: asString(pick(source, 'headline'), title),
+    intro: asString(pick(source, 'intro', 'summary', 'description')),
+    heroImage: asString(
+      pick(source, 'heroImage', 'hero_image', 'image_url', 'cover_image'),
+      'https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=1800&auto=format&fit=crop'
+    ),
+    city: asString(pick(source, 'city'), 'NYC'),
+    category: asString(pick(source, 'category'), 'Discovery'),
+    sections,
+    merchantSlugs: asStringArray(pick(source, 'merchantSlugs', 'merchant_slugs')),
+    faqs: asFAQArray(pick(source, 'faqs', 'faq')),
+    ctas: asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+  };
+};
+
+async function getPublishedGeneratedPage(
+  slug: string,
+  pageType: 'merchant' | 'discovery'
+): Promise<JsonRecord | null> {
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await getClient()
+    .from('generated_pages')
+    .select('*')
+    .eq('slug', slug)
+    .eq('page_type', pageType)
+    .eq('status', 'published')
+    .maybeSingle();
+
+  if (error) {
+    console.error('[generated_pages fetch error]', error.message, error);
+    return null;
+  }
+
+  return isRecord(data) ? data : null;
+}
+
+export async function getMerchantPageBySlug(slug: string): Promise<GeoMerchant | null> {
+  const row = await getPublishedGeneratedPage(slug, 'merchant');
+  return row ? normalizeMerchantPage(row) : null;
+}
+
+export async function getDiscoveryPageBySlug(slug: string): Promise<GeoDiscoveryPage | null> {
+  const row = await getPublishedGeneratedPage(slug, 'discovery');
+  return row ? normalizeDiscoveryPage(row) : null;
 }
