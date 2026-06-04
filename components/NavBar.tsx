@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
+const discoverHref = '/discover';
+
 export const NavBar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
 
@@ -54,7 +56,7 @@ export const NavBar: React.FC = () => {
           <a href="/#workflow" className="hidden md:block font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Workflow
           </a>
-          <Link to="/discover/best-asian-dessert-nyc" className="font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
+          <Link to={discoverHref} className="font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">
             Discover
           </Link>
           <Link to="/verify" className="font-display font-bold text-sm uppercase tracking-wider hover:underline underline-offset-4 decoration-2">

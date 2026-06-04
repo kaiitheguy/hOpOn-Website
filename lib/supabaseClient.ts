@@ -173,6 +173,14 @@ export function trackAnonymousRedemption(payload: {
 }
 
 type JsonRecord = Record<string, unknown>;
+export type GeneratedPageSummary = {
+  slug: string;
+  pageType: 'merchant' | 'discovery';
+  title: string;
+  metaDescription: string;
+  href: string;
+  publishedAt: string | null;
+};
 
 const isRecord = (value: unknown): value is JsonRecord =>
   Boolean(value && typeof value === 'object' && !Array.isArray(value));
@@ -362,4 +370,39 @@ export async function getMerchantPageBySlug(slug: string): Promise<GeoMerchant |
 export async function getDiscoveryPageBySlug(slug: string): Promise<GeoDiscoveryPage | null> {
   const row = await getPublishedGeneratedPage(slug, 'discovery');
   return row ? normalizeDiscoveryPage(row) : null;
+}
+
+export async function getPublishedGeneratedPages(): Promise<GeneratedPageSummary[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await getClient()
+    .from('generated_pages')
+    .select('slug,page_type,title,meta_description,published_at')
+    .eq('status', 'published')
+    .in('page_type', ['merchant', 'discovery'])
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[generated_pages list error]', error.message, error);
+    return [];
+  }
+
+  return Array.isArray(data)
+    ? data
+        .filter(isRecord)
+        .map((row) => {
+          const pageType = row.page_type === 'discovery' ? 'discovery' : 'merchant';
+          const slug = asString(row.slug);
+          return {
+            slug,
+            pageType,
+            title: asString(row.title, slug),
+            metaDescription: asString(row.meta_description),
+            href: pageType === 'discovery' ? `/discover/${slug}` : `/merchant/${slug}`,
+            publishedAt: asString(row.published_at) || null,
+          };
+        })
+        .filter((row) => row.slug && row.title)
+    : [];
 }

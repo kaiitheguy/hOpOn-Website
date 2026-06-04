@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+const discoverHref = '/discover';
+
 export const Footer: React.FC = () => {
   const scrollToTop = (e: React.MouseEvent) => {
       e.preventDefault();
@@ -17,7 +19,7 @@ export const Footer: React.FC = () => {
               <ul className="space-y-4 font-display font-bold text-lg uppercase">
                   <li><a href="/#mission" className="hover:text-hopon-red transition-colors">Mission</a></li>
                   <li><a href="/#workflow" className="hover:text-hopon-red transition-colors">Workflow</a></li>
-                  <li><Link to="/discover/best-asian-dessert-nyc" className="hover:text-hopon-red transition-colors">Discover</Link></li>
+                  <li><Link to={discoverHref} className="hover:text-hopon-red transition-colors">Discover</Link></li>
               </ul>
           </div>
           
