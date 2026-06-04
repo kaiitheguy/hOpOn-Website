@@ -4,9 +4,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
-    const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || '';
+    const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || env.EXPO_PUBLIC_SUPABASE_URL || '';
+    const supabaseAnonKey =
+      env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
     return {
+      envPrefix: ['VITE_', 'EXPO_PUBLIC_'],
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -20,8 +22,15 @@ export default defineConfig(({ mode }) => {
               if (req.url?.startsWith('/config.js')) {
                 const devEnv = loadEnv('development', process.cwd(), '');
                 const config = {
-                  VITE_SUPABASE_URL: devEnv.VITE_SUPABASE_URL || devEnv.SUPABASE_URL || '',
-                  VITE_SUPABASE_ANON_KEY: devEnv.VITE_SUPABASE_ANON_KEY || devEnv.SUPABASE_ANON_KEY || '',
+                  VITE_SUPABASE_URL:
+                    devEnv.VITE_SUPABASE_URL || devEnv.SUPABASE_URL || devEnv.EXPO_PUBLIC_SUPABASE_URL || '',
+                  VITE_SUPABASE_ANON_KEY:
+                    devEnv.VITE_SUPABASE_ANON_KEY ||
+                    devEnv.SUPABASE_ANON_KEY ||
+                    devEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+                    '',
+                  EXPO_PUBLIC_SUPABASE_URL: devEnv.EXPO_PUBLIC_SUPABASE_URL || '',
+                  EXPO_PUBLIC_SUPABASE_ANON_KEY: devEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
                   GEMINI_API_KEY: devEnv.GEMINI_API_KEY || '',
                 };
                 res.setHeader('Content-Type', 'application/javascript');
@@ -36,6 +45,8 @@ export default defineConfig(({ mode }) => {
       define: {
         'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
         'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
+        'import.meta.env.EXPO_PUBLIC_SUPABASE_URL': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_URL || ''),
+        'import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''),
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },

@@ -276,7 +276,7 @@ export const GeoDiscoveryPage: React.FC = () => {
             </h2>
             <div className="flex flex-col gap-3 sm:flex-row">
               {page.ctas.map((cta) => (
-                <OutboundCTA key={cta.href} href={cta.href} variant={cta.variant} className="border-white">
+                <OutboundCTA key={`${cta.label}-${cta.href ?? 'button'}`} href={cta.href} variant={cta.variant} className="border-white">
                   {cta.label}
                 </OutboundCTA>
               ))}

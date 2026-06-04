@@ -5,8 +5,13 @@ export interface GeoFAQ {
 
 export interface GeoCTA {
   label: string;
-  href: string;
+  href?: string;
   variant?: 'primary' | 'secondary';
+}
+
+export interface GeoSection {
+  heading: string;
+  body: string;
 }
 
 export interface GeoMerchant {
@@ -26,6 +31,7 @@ export interface GeoMerchant {
   highlights: string[];
   signatureItems: string[];
   bestFor: string[];
+  sections: GeoSection[];
   faqs: GeoFAQ[];
   ctas: GeoCTA[];
 }
@@ -41,10 +47,7 @@ export interface GeoDiscoveryPage {
   heroImage: string;
   city: string;
   category: string;
-  sections: Array<{
-    heading: string;
-    body: string;
-  }>;
+  sections: GeoSection[];
   merchantSlugs: string[];
   faqs: GeoFAQ[];
   ctas: GeoCTA[];
@@ -73,6 +76,7 @@ export const geoMerchants: Record<string, GeoMerchant> = {
       'Strong fit for black sesame, matcha, cream, and fruit flavor searches',
       'Built for quick discovery from local guides and creator recommendations',
     ],
+    sections: [],
     signatureItems: [
       'Black sesame dessert',
       'Asian patisserie box',

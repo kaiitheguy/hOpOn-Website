@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 interface OutboundCTAProps {
-  href: string;
+  href?: string;
   children: React.ReactNode;
   variant?: 'primary' | 'secondary';
   className?: string;
@@ -23,6 +23,14 @@ export const OutboundCTA: React.FC<OutboundCTAProps> = ({
   className = '',
 }) => {
   const classes = `${baseClass} ${variantClass[variant]} ${className}`;
+  if (!href || href === '#') {
+    return (
+      <button type="button" className={classes}>
+        {children}
+      </button>
+    );
+  }
+
   const isInternal = href.startsWith('/');
 
   if (isInternal) {

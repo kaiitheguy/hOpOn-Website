@@ -1,11 +1,13 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { GeoCTA, GeoDiscoveryPage, GeoFAQ, GeoMerchant } from './geoMockData';
+import type { GeoCTA, GeoDiscoveryPage, GeoFAQ, GeoMerchant, GeoSection } from './geoMockData';
 
 declare global {
   interface Window {
     __RUNTIME_CONFIG__?: {
       VITE_SUPABASE_URL?: string;
       VITE_SUPABASE_ANON_KEY?: string;
+      EXPO_PUBLIC_SUPABASE_URL?: string;
+      EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
       GEMINI_API_KEY?: string;
     };
   }
@@ -13,8 +15,19 @@ declare global {
 
 function getSupabaseConfig(): { url: string; anonKey: string } {
   const runtime = typeof window !== 'undefined' ? window.__RUNTIME_CONFIG__ : undefined;
-  const url = runtime?.VITE_SUPABASE_URL ?? import.meta.env?.VITE_SUPABASE_URL ?? '';
-  const anonKey = runtime?.VITE_SUPABASE_ANON_KEY ?? import.meta.env?.VITE_SUPABASE_ANON_KEY ?? '';
+  const viteEnv = import.meta.env;
+  const url =
+    runtime?.VITE_SUPABASE_URL ??
+    runtime?.EXPO_PUBLIC_SUPABASE_URL ??
+    viteEnv.VITE_SUPABASE_URL ??
+    viteEnv.EXPO_PUBLIC_SUPABASE_URL ??
+    '';
+  const anonKey =
+    runtime?.VITE_SUPABASE_ANON_KEY ??
+    runtime?.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+    viteEnv.VITE_SUPABASE_ANON_KEY ??
+    viteEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+    '';
   return { url, anonKey };
 }
 
@@ -181,17 +194,32 @@ const asFAQArray = (value: unknown): GeoFAQ[] =>
         .filter((item) => item.question && item.answer)
     : [];
 
-const asCTAArray = (value: unknown): GeoCTA[] =>
+const asSectionArray = (value: unknown): GeoSection[] =>
   Array.isArray(value)
     ? value
         .filter(isRecord)
         .map((item) => ({
-          label: asString(item.label),
-          href: asString(item.href),
-          variant: item.variant === 'secondary' ? 'secondary' : 'primary',
+          heading: asString(item.heading, asString(item.title)),
+          body: asString(item.body, asString(item.description)),
         }))
-        .filter((item) => item.label && item.href)
+        .filter((item) => item.heading && item.body)
     : [];
+
+const asCTA = (value: unknown): GeoCTA | null => {
+  if (!isRecord(value)) return null;
+
+  const label = asString(value.label, asString(value.text, 'Learn More'));
+  if (!label) return null;
+
+  return {
+    label,
+    href: asString(value.href, asString(value.url, asString(value.path, '#'))),
+    variant: value.variant === 'secondary' ? 'secondary' : 'primary',
+  };
+};
+
+const asCTAArray = (value: unknown): GeoCTA[] =>
+  Array.isArray(value) ? value.map(asCTA).filter((item): item is GeoCTA => Boolean(item)) : [];
 
 const pagePayload = (row: JsonRecord): JsonRecord => {
   const nested =
@@ -216,10 +244,18 @@ const pick = (source: JsonRecord, ...keys: string[]) => {
 
 const normalizeMerchantPage = (row: JsonRecord): GeoMerchant | null => {
   const source = pagePayload(row);
+  const content = isRecord(row.content) ? row.content : {};
+  const hero = isRecord(content.hero) ? content.hero : {};
   const slug = asString(pick(source, 'slug'));
-  const name = asString(pick(source, 'name', 'title', 'merchant_name'));
+  const name = asString(pick(source, 'name', 'merchant_name', 'title'), asString(row.title));
 
   if (!slug || !name) return null;
+
+  const sections = asSectionArray(pick(source, 'sections'));
+  const ctas = [
+    ...asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+    ...asCTAArray(pick(source, 'cta') ? [pick(source, 'cta')] : undefined),
+  ];
 
   return {
     slug,
@@ -233,61 +269,66 @@ const normalizeMerchantPage = (row: JsonRecord): GeoMerchant | null => {
       pick(source, 'heroImage', 'hero_image', 'image_url', 'cover_image'),
       'https://images.unsplash.com/photo-1551024506-0bccd828d307?q=80&w=1800&auto=format&fit=crop'
     ),
-    seoTitle: asString(pick(source, 'seoTitle', 'seo_title'), `${name} | hOpOn`),
+    seoTitle: asString(pick(row, 'title'), asString(pick(source, 'seoTitle', 'seo_title'), `${name} | hOpOn`)),
     seoDescription: asString(
-      pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description'),
+      pick(row, 'meta_description') ??
+        pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description'),
       `Discover ${name} on hOpOn.`
     ),
     eyebrow: asString(pick(source, 'eyebrow'), 'Merchant guide'),
-    headline: asString(pick(source, 'headline'), `${name} on hOpOn.`),
-    summary: asString(pick(source, 'summary', 'description')),
+    headline: asString(pick(hero, 'headline'), asString(pick(source, 'headline'), `${name} on hOpOn.`)),
+    summary: asString(
+      pick(hero, 'subheadline'),
+      asString(pick(source, 'summary', 'description'))
+    ),
     highlights: asStringArray(pick(source, 'highlights')),
     signatureItems: asStringArray(pick(source, 'signatureItems', 'signature_items')),
     bestFor: asStringArray(pick(source, 'bestFor', 'best_for')),
+    sections,
     faqs: asFAQArray(pick(source, 'faqs', 'faq')),
-    ctas: asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+    ctas,
   };
 };
 
 const normalizeDiscoveryPage = (row: JsonRecord): GeoDiscoveryPage | null => {
   const source = pagePayload(row);
+  const content = isRecord(row.content) ? row.content : {};
+  const hero = isRecord(content.hero) ? content.hero : {};
   const slug = asString(pick(source, 'slug'));
-  const title = asString(pick(source, 'title', 'name'));
+  const title = asString(pick(row, 'title'), asString(pick(source, 'title', 'name')));
 
   if (!slug || !title) return null;
 
-  const rawSections = pick(source, 'sections');
-  const sections = Array.isArray(rawSections)
-    ? rawSections
-        .filter(isRecord)
-        .map((item) => ({
-          heading: asString(item.heading, asString(item.title)),
-          body: asString(item.body, asString(item.description)),
-        }))
-        .filter((item) => item.heading && item.body)
-    : [];
+  const ctas = [
+    ...asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+    ...asCTAArray(pick(source, 'cta') ? [pick(source, 'cta')] : undefined),
+  ];
 
   return {
     slug,
     title,
-    seoTitle: asString(pick(source, 'seoTitle', 'seo_title'), `${title} | hOpOn Discovery`),
+    seoTitle: asString(pick(row, 'title'), asString(pick(source, 'seoTitle', 'seo_title'), `${title} | hOpOn Discovery`)),
     seoDescription: asString(
-      pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description', 'intro'),
+      pick(row, 'meta_description') ??
+        pick(source, 'seoDescription', 'seo_description', 'meta_description', 'description', 'intro'),
       `Discover ${title} on hOpOn.`
     ),
     eyebrow: asString(pick(source, 'eyebrow'), 'Discovery guide'),
-    headline: asString(pick(source, 'headline'), title),
-    intro: asString(pick(source, 'intro', 'summary', 'description')),
+    headline: asString(pick(hero, 'headline'), asString(pick(source, 'headline'), title)),
+    intro: asString(
+      pick(hero, 'subheadline'),
+      asString(pick(source, 'intro', 'summary', 'description'))
+    ),
     heroImage: asString(
       pick(source, 'heroImage', 'hero_image', 'image_url', 'cover_image'),
       'https://images.unsplash.com/photo-1563805042-7684c019e1cb?q=80&w=1800&auto=format&fit=crop'
     ),
     city: asString(pick(source, 'city'), 'NYC'),
     category: asString(pick(source, 'category'), 'Discovery'),
-    sections,
+    sections: asSectionArray(pick(source, 'sections')),
     merchantSlugs: asStringArray(pick(source, 'merchantSlugs', 'merchant_slugs')),
     faqs: asFAQArray(pick(source, 'faqs', 'faq')),
-    ctas: asCTAArray(pick(source, 'ctas', 'cta_buttons')),
+    ctas,
   };
 };
 

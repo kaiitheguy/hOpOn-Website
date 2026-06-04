@@ -106,6 +106,11 @@ export const GeoMerchantPage: React.FC = () => {
   if (loading) return <LoadingState />;
   if (!merchant) return <NotFoundState />;
 
+  const hasLegacyDetailGrid =
+    merchant.highlights.length > 0 ||
+    merchant.signatureItems.length > 0 ||
+    merchant.bestFor.length > 0;
+
   return (
     <div className="min-h-screen bg-white text-hopon-black">
       <NavBar />
@@ -153,47 +158,64 @@ export const GeoMerchantPage: React.FC = () => {
           </div>
         </header>
 
-        <section className="grid border-b border-black md:grid-cols-3">
-          <div className="border-b border-black p-8 md:border-b-0 md:border-r md:p-12">
-            <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
-              Highlights
-            </h2>
-            <ul className="space-y-4 font-mono text-sm leading-relaxed text-black/75">
-              {merchant.highlights.map((highlight) => (
-                <li key={highlight} className="border-l-2 border-hopon-red pl-4">
-                  {highlight}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="border-b border-black bg-hopon-grey p-8 md:border-b-0 md:border-r md:p-12">
-            <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
-              Signature items
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              {merchant.signatureItems.map((item) => (
-                <span
-                  key={item}
-                  className="border-2 border-black bg-white px-3 py-2 font-mono text-xs uppercase tracking-wider"
-                >
-                  {item}
-                </span>
+        {hasLegacyDetailGrid && (
+          <section className="grid border-b border-black md:grid-cols-3">
+            <div className="border-b border-black p-8 md:border-b-0 md:border-r md:p-12">
+              <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
+                Highlights
+              </h2>
+              <ul className="space-y-4 font-mono text-sm leading-relaxed text-black/75">
+                {merchant.highlights.map((highlight) => (
+                  <li key={highlight} className="border-l-2 border-hopon-red pl-4">
+                    {highlight}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="border-b border-black bg-hopon-grey p-8 md:border-b-0 md:border-r md:p-12">
+              <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
+                Signature items
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                {merchant.signatureItems.map((item) => (
+                  <span
+                    key={item}
+                    className="border-2 border-black bg-white px-3 py-2 font-mono text-xs uppercase tracking-wider"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="p-8 md:p-12">
+              <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
+                Best for
+              </h2>
+              <div className="space-y-3">
+                {merchant.bestFor.map((item) => (
+                  <p key={item} className="font-display text-xl font-bold uppercase leading-tight">
+                    {item}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {merchant.sections.length > 0 && (
+          <section className="border-b border-black px-6 py-20 md:px-12 lg:px-24">
+            <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2">
+              {merchant.sections.map((section) => (
+                <article key={section.heading} className="border-2 border-black p-8 md:p-10">
+                  <h2 className="mb-4 font-display text-3xl font-bold uppercase leading-none tracking-tight">
+                    {section.heading}
+                  </h2>
+                  <p className="font-mono text-sm leading-relaxed text-black/75">{section.body}</p>
+                </article>
               ))}
             </div>
-          </div>
-          <div className="p-8 md:p-12">
-            <h2 className="mb-6 font-display text-2xl font-bold uppercase tracking-tight">
-              Best for
-            </h2>
-            <div className="space-y-3">
-              {merchant.bestFor.map((item) => (
-                <p key={item} className="font-display text-xl font-bold uppercase leading-tight">
-                  {item}
-                </p>
-              ))}
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         <section className="border-b border-black px-6 py-20 md:px-12 lg:px-24">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[360px_1fr]">
@@ -225,7 +247,7 @@ export const GeoMerchantPage: React.FC = () => {
             </h2>
             <div className="flex flex-col gap-3 sm:flex-row">
               {merchant.ctas.map((cta) => (
-                <OutboundCTA key={cta.href} href={cta.href} variant={cta.variant} className="border-white">
+                <OutboundCTA key={`${cta.label}-${cta.href ?? 'button'}`} href={cta.href} variant={cta.variant} className="border-white">
                   {cta.label}
                 </OutboundCTA>
               ))}
