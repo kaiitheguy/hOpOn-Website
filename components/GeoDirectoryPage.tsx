@@ -80,7 +80,7 @@ export const GeoDirectoryPage: React.FC = () => {
           <div className="mx-auto max-w-[1920px] border-t border-black pt-8">
             <div className="mb-20 flex items-start justify-between gap-8">
               <p className="font-mono text-xs uppercase tracking-widest text-black/60">
-                Published GEO pages
+                Published local pages
               </p>
               <p className="hidden text-right font-mono text-xs uppercase tracking-widest text-black/60 md:block">
                 Discovery

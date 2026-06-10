@@ -2,9 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar } from './components/NavBar';
 import { Hero } from './components/Hero';
-import { Philosophy } from './components/Philosophy';
-import { Concepts } from './components/Concepts';
-import { Workflow } from './components/Workflow';
+import { FinalCTA, InteractiveProductDemo, WhyHopon } from './components/LandingPageSections';
 import { Footer } from './components/Footer';
 
 const App: React.FC = () => {
@@ -29,9 +27,9 @@ const App: React.FC = () => {
       <NavBar />
       <main>
         <Hero />
-        <Philosophy />
-        <Concepts />
-        <Workflow />
+        <InteractiveProductDemo />
+        <WhyHopon />
+        <FinalCTA />
       </main>
       <Footer />
     </div>

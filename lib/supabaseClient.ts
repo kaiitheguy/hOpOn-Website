@@ -172,6 +172,245 @@ export function trackAnonymousRedemption(payload: {
   }
 }
 
+export type HoponRedeemCreator = {
+  id: string;
+  name: string;
+  handle: string;
+  avatarUrl?: string | null;
+  platform: string;
+  label: string;
+};
+
+export type HoponRedeemCampaign = {
+  id: string;
+  title: string;
+  merchantName: string;
+  status: string;
+  offerType: 'percent_off';
+  offerValue: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  creators: HoponRedeemCreator[];
+};
+
+const platformLabel = (platform?: string | null): string => {
+  const value = String(platform || '').toLowerCase();
+  if (value.includes('xhs') || value.includes('xiaohong')) return 'Xiaohongshu';
+  if (value.includes('douyin')) return 'Douyin';
+  if (value.includes('tiktok')) return 'TikTok';
+  if (value.includes('instagram')) return 'Instagram';
+  return 'Social';
+};
+
+const creatorLabel = (tags: unknown): string => {
+  const values = Array.isArray(tags) ? tags.map(String).map((tag) => tag.toLowerCase()) : [];
+  if (values.some((tag) => tag.includes('beauty') || tag.includes('skin'))) return 'Local beauty creator';
+  if (values.some((tag) => tag.includes('wellness') || tag.includes('fitness'))) return 'Local wellness creator';
+  if (values.some((tag) => tag.includes('cafe') || tag.includes('coffee'))) return 'Local cafe creator';
+  return 'Local food creator';
+};
+
+const normalizeHandle = (handle?: string | null): string =>
+  String(handle || 'creator').trim().replace(/^@+/, '') || 'creator';
+
+const TEST_CAMPAIGN_PATTERN = /test|demo|sandbox|internal|\bqa\b|测试|測試/i;
+
+function isLikelyPublicOpenCampaign(campaign: {
+  title?: string | null;
+  description?: string | null;
+  status?: string | null;
+  restaurant_profiles?: { name?: string | null } | null;
+}): boolean {
+  if (campaign.status !== 'OPEN') return false;
+  const searchable = [
+    campaign.title,
+    campaign.description,
+    campaign.restaurant_profiles?.name,
+  ].filter(Boolean).join(' ');
+  return !TEST_CAMPAIGN_PATTERN.test(searchable);
+}
+
+export const fallbackRedeemCampaigns: HoponRedeemCampaign[] = [
+  {
+    id: 'demo-strawberry-matcha',
+    title: 'Strawberry Matcha Launch',
+    merchantName: 'Atelier Matcha',
+    status: 'OPEN',
+    offerType: 'percent_off',
+    offerValue: 5,
+    creators: [
+      { id: 'maya-chen', name: 'Maya Chen', handle: 'mayabites', platform: 'TikTok', label: 'Local food creator' },
+      { id: 'iris-lin', name: 'Iris Lin', handle: 'irisnotes', platform: 'Instagram', label: 'Local cafe creator' },
+    ],
+  },
+  {
+    id: 'demo-ramen-lunch',
+    title: 'Weekday Ramen Lunch',
+    merchantName: 'Mori Ramen Bar',
+    status: 'OPEN',
+    offerType: 'percent_off',
+    offerValue: 5,
+    creators: [
+      { id: 'noah-park', name: 'Noah Park', handle: 'noahvisits', platform: 'TikTok', label: 'Local food creator' },
+      { id: 'emi-sato', name: 'Emi Sato', handle: 'eminyc', platform: 'Instagram', label: 'Local food creator' },
+    ],
+  },
+  {
+    id: 'demo-first-facial',
+    title: 'First Facial Visit',
+    merchantName: 'Bloom Skin Studio',
+    status: 'OPEN',
+    offerType: 'percent_off',
+    offerValue: 5,
+    creators: [
+      { id: 'lena-ross', name: 'Lena Ross', handle: 'lenaglow', platform: 'Instagram', label: 'Local beauty creator' },
+      { id: 'talia-cho', name: 'Talia Cho', handle: 'taliacare', platform: 'TikTok', label: 'Local beauty creator' },
+    ],
+  },
+  {
+    id: 'demo-pastry-drop',
+    title: 'Seasonal Pastry Drop',
+    merchantName: 'Mori Bakehouse',
+    status: 'OPEN',
+    offerType: 'percent_off',
+    offerValue: 5,
+    creators: [
+      { id: 'marco-lee', name: 'Marco Lee', handle: 'marcoeats', platform: 'TikTok', label: 'Local food creator' },
+      { id: 'nina-wu', name: 'Nina Wu', handle: 'ninabakes', platform: 'Instagram', label: 'Local food creator' },
+    ],
+  },
+];
+
+export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampaign[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await getClient()
+      .from('campaigns')
+      .select(`
+        id,
+        title,
+        description,
+        status,
+        start_date,
+        end_date,
+        platforms,
+        restaurant_profiles!campaigns_restaurant_id_fkey (
+          name
+        )
+      `)
+      .eq('status', 'OPEN')
+      .lte('start_date', today)
+      .gte('end_date', today)
+      .order('created_at', { ascending: false })
+      .limit(12);
+
+    if (error) {
+      console.warn('[listActiveHoponRedeemCampaigns] campaign query failed', error.message);
+      return [];
+    }
+
+    const campaigns = await Promise.all(
+      (data || [])
+        .filter((campaign: any) => isLikelyPublicOpenCampaign(campaign))
+        .map(async (campaign: any): Promise<HoponRedeemCampaign | null> => {
+          const { data: applicationRows, error: appError } = await getClient()
+            .from('applications')
+            .select(`
+              id,
+              status,
+              creator_profiles!applications_creator_id_fkey (
+                id,
+                name,
+                handle,
+                avatar,
+                tags,
+                tiktok_handle
+              )
+            `)
+            .eq('campaign_id', campaign.id)
+            .eq('status', 'ACCEPTED')
+            .limit(8);
+
+          if (appError) {
+            console.warn('[listActiveHoponRedeemCampaigns] creator query failed', appError.message);
+          }
+
+          const creators = (applicationRows || [])
+            .map((row: any): HoponRedeemCreator | null => {
+              const creator = row.creator_profiles;
+              if (!creator?.id) return null;
+              const platform = platformLabel((campaign.platforms || [])[0]);
+              return {
+                id: creator.id,
+                name: creator.name || creator.handle || 'Creator',
+                handle: normalizeHandle(creator.handle || creator.tiktok_handle),
+                avatarUrl: creator.avatar || null,
+                platform,
+                label: creatorLabel(creator.tags),
+              };
+            })
+            .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
+
+          if (creators.length === 0) return null;
+
+          return {
+            id: campaign.id,
+            title: campaign.title,
+            merchantName: campaign.restaurant_profiles?.name || 'Hopon merchant',
+            status: campaign.status,
+            offerType: 'percent_off',
+            offerValue: 5,
+            startDate: campaign.start_date,
+            endDate: campaign.end_date,
+            creators,
+          };
+        })
+    );
+
+    return campaigns.filter((campaign): campaign is HoponRedeemCampaign => Boolean(campaign));
+  } catch (error) {
+    console.warn('[listActiveHoponRedeemCampaigns] unexpected error', error);
+    return [];
+  }
+}
+
+export function trackHoponOfferRedeem(payload: {
+  campaignId: string;
+  campaignTitle: string;
+  merchantName: string;
+  creatorId: string;
+  creatorHandle: string;
+  offerType: 'percent_off';
+  offerValue: number;
+}): void {
+  try {
+    // TODO: Replace this compatibility insert with a dedicated public offer_redemptions table
+    // when the production schema adds campaign_id, creator_id, offer_type, and offer_value columns.
+    getClient()
+      .from('anonymous_redemptions')
+      .insert({
+        code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
+        template_code_name: 'hopon_in_store_offer',
+        metadata: {
+          campaign_id: payload.campaignId,
+          campaign_title: payload.campaignTitle,
+          merchant_name: payload.merchantName,
+          creator_id: payload.creatorId,
+          creator_handle: payload.creatorHandle,
+          offer_type: payload.offerType,
+          offer_value: payload.offerValue,
+        },
+      })
+      .then(({ error }) => {
+        if (error) console.warn('[trackHoponOfferRedeem]', error.message);
+      });
+  } catch {
+    // Non-blocking: the customer should still be able to show the offer in-store.
+  }
+}
+
 type JsonRecord = Record<string, unknown>;
 export type GeneratedPageSummary = {
   slug: string;
