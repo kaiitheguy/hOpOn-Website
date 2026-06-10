@@ -65,22 +65,22 @@ export const Footer: React.FC = () => {
         <div className="border-b border-white/20 p-8 md:border-b-0 md:border-r md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Product</h4>
           <ul className="space-y-4 font-display text-lg font-bold uppercase">
-            <li><a href="/#demo" className="transition-colors hover:text-hopon-red">Product Demo</a></li>
-            <li><a href="/#why" className="transition-colors hover:text-hopon-red">Why Hopon</a></li>
-            <li><Link to="/verify" className="transition-colors hover:text-hopon-red">Redeem Offer</Link></li>
+            <li><a href="/#demo" className="transition-colors hover:text-hopon-red">Demo</a></li>
+            <li><a href="/#why" className="transition-colors hover:text-hopon-red">Why hOpOn</a></li>
+            <li><Link to="/verify" className="transition-colors hover:text-hopon-red">Claim Offer</Link></li>
           </ul>
         </div>
 
         <div className="border-b border-white/20 p-8 md:border-b-0 lg:border-r md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Business</h4>
           <ul className="space-y-4 font-display text-lg font-bold uppercase">
-            <li><Link to="/merchant/signup" className="transition-colors hover:text-hopon-red">Grow Now</Link></li>
+            <li><Link to="/merchant/signup" className="transition-colors hover:text-hopon-red">Start Growing</Link></li>
             <li><a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-hopon-red">Download App</a></li>
             <li><Link to="/merchant/login" className="transition-colors hover:text-hopon-red">Merchant Login</Link></li>
           </ul>
         </div>
 
-        <div className="border-b border-white/20 p-8 md:border-b-0 md:border-r lg:border-r md:p-12">
+        <div id="contact" className="scroll-mt-28 border-b border-white/20 p-8 md:border-b-0 md:border-r lg:border-r md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Contact</h4>
           <ContactForm />
         </div>
@@ -88,10 +88,10 @@ export const Footer: React.FC = () => {
         <div className="p-8 md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Promise</h4>
           <p className="font-display text-3xl font-bold leading-tight">
-            Your AI marketing team, without hiring one.
+            More customers, less manual marketing.
           </p>
           <p className="mt-5 text-sm leading-6 text-white/60">
-            Hopon helps local merchants launch campaigns, bring in customers, and see what worked.
+            hOpOn helps local merchants launch campaigns, bring people into the store, and know what worked.
           </p>
         </div>
       </div>

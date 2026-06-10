@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Check,
   CheckCircle2,
-  Clock3,
   MessageSquareText,
   Gift,
   MousePointerClick,
@@ -12,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
-import { AppStoreBadge } from './Hero';
 
 type DemoStepId = 'profile' | 'campaign' | 'creators' | 'review' | 'conversion' | 'roi';
 
@@ -26,39 +24,39 @@ type DemoStep = {
 const steps: DemoStep[] = [
   {
     id: 'profile',
-    eyebrow: 'Step 1',
-    title: 'Merchant profile',
-    copy: 'Hopon learns the business, product, location, and goal.',
+    eyebrow: '01',
+    title: 'Tell hOpOn about your business',
+    copy: 'Location, audience, products, and goals.',
   },
   {
     id: 'campaign',
-    eyebrow: 'Step 2',
-    title: 'Generate campaign',
-    copy: 'A campaign idea, offer, and creator brief are generated in seconds.',
+    eyebrow: '02',
+    title: 'hOpOn creates a campaign',
+    copy: 'Offers, creator briefs, and a simple plan.',
   },
   {
     id: 'creators',
-    eyebrow: 'Step 3',
-    title: 'Creator matching',
-    copy: 'The best local creators are ranked by audience fit.',
+    eyebrow: '03',
+    title: 'Match local creators',
+    copy: 'Creators who already influence your neighborhood.',
   },
   {
     id: 'review',
-    eyebrow: 'Step 4',
-    title: 'Draft revise & post review',
-    copy: 'Creators send drafts, Hopon helps refine them, and the merchant approves the final post.',
+    eyebrow: '04',
+    title: 'Review drafts',
+    copy: 'Creators visit, create content, and submit drafts.',
   },
   {
     id: 'conversion',
-    eyebrow: 'Step 5',
-    title: 'Offline conversion',
-    copy: 'Customers scan in store, choose what brought them in, and unlock the offer.',
+    eyebrow: '05',
+    title: 'Customers visit the store',
+    copy: 'Customers come in and unlock the in-store offer.',
   },
   {
     id: 'roi',
-    eyebrow: 'Step 6',
-    title: 'ROI dashboard',
-    copy: 'Visits, revenue, and creator performance become clear.',
+    eyebrow: '06',
+    title: 'Track what worked',
+    copy: 'See visits, revenue, and creator performance.',
   },
 ];
 
@@ -112,7 +110,7 @@ function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId,
         const id = visible?.target.getAttribute('data-step') as DemoStepId | null;
         if (id) setActive(id);
       },
-      { threshold: [0.35, 0.55, 0.75], rootMargin: '-18% 0px -38% 0px' }
+      { threshold: [0.45, 0.65, 0.85], rootMargin: '-30% 0px -42% 0px' }
     );
 
     Object.values(refs.current).forEach((node) => {
@@ -127,14 +125,14 @@ function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId,
 function PhoneFrame({ children, compact = false }: { children: React.ReactNode; compact?: boolean }) {
   return (
     <div
-      className={`relative mx-auto rounded-[46px] border-[10px] border-hopon-black bg-hopon-black shadow-[0_26px_90px_rgba(0,0,0,0.24)] ${
-        compact ? 'w-[252px] sm:w-[270px]' : 'w-[286px] md:w-[304px]'
+      className={`relative mx-auto rounded-[40px] border-[8px] border-hopon-black bg-hopon-black shadow-[0_22px_70px_rgba(0,0,0,0.22)] md:rounded-[46px] md:border-[10px] ${
+        compact ? 'w-[210px] sm:w-[228px]' : 'w-[286px] md:w-[304px]'
       }`}
     >
-      <div className="absolute left-1/2 top-2 z-20 h-5 w-20 -translate-x-1/2 rounded-full bg-hopon-black md:h-6 md:w-24" />
+      <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-hopon-black md:h-6 md:w-24" />
       <div
-        className={`overflow-hidden rounded-[34px] bg-[#F8F6F1] ${
-          compact ? 'h-[548px] sm:h-[586px]' : 'h-[620px] md:h-[660px]'
+        className={`overflow-hidden rounded-[30px] bg-[#F8F6F1] md:rounded-[34px] ${
+          compact ? 'h-[405px] sm:h-[430px]' : 'h-[620px] md:h-[660px]'
         }`}
       >
         {children}
@@ -143,15 +141,15 @@ function PhoneFrame({ children, compact = false }: { children: React.ReactNode; 
   );
 }
 
-function ScreenHeader({ title, subtitle }: { title: string; subtitle: string }) {
+function ScreenHeader({ title, subtitle, compact = false }: { title: string; subtitle: string; compact?: boolean }) {
   return (
-    <div className="border-b border-black/10 bg-white px-4 pb-3 pt-9">
-      <div className="mb-3 flex items-center justify-between text-[10px] text-black/40">
+    <div className={`border-b border-black/10 bg-white px-4 ${compact ? 'pb-2 pt-6' : 'pb-3 pt-9'}`}>
+      <div className={`${compact ? 'mb-2' : 'mb-3'} flex items-center justify-between text-[10px] text-black/40`}>
         <span className="font-mono">9:41</span>
-        <span className="rounded-full bg-black/5 px-2 py-1 font-mono uppercase">Hopon</span>
+        <span className="rounded-full bg-black/5 px-2 py-1 font-mono uppercase">hOpOn</span>
       </div>
       <p className="font-mono text-[10px] uppercase text-black/50">{subtitle}</p>
-      <h3 className="mt-1 font-display text-2xl font-bold leading-[1.05] text-hopon-black">{title}</h3>
+      <h3 className={`${compact ? 'text-xl' : 'text-2xl'} mt-1 font-display font-bold leading-[1.05] text-hopon-black`}>{title}</h3>
     </div>
   );
 }
@@ -181,10 +179,10 @@ function Metric({ label, value, tone = 'light' }: { label: string; value: string
   );
 }
 
-function ProfileScreen() {
+function ProfileScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <div className="relative h-44 overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? 'h-32' : 'h-44'}`}>
         <img src="/assets/premium-asian-bakery-campaign.png" alt="" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute left-4 top-10">
@@ -192,18 +190,18 @@ function ProfileScreen() {
         </div>
         <div className="absolute bottom-4 left-5 right-5 text-white">
           <p className="font-mono text-[10px] uppercase text-white/70">Merchant Profile</p>
-          <h3 className="mt-1 font-display text-3xl font-bold">Atelier Matcha</h3>
+          <h3 className={`${compact ? 'text-2xl' : 'text-3xl'} mt-1 font-display font-bold`}>Atelier Matcha</h3>
         </div>
       </div>
-      <div className="p-4">
-        <div className="rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] p-3.5 text-hopon-black">
+      <div className={compact ? 'p-3' : 'p-4'}>
+        <div className={`rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] text-hopon-black ${compact ? 'p-3' : 'p-3.5'}`}>
           <div className="flex items-center justify-between gap-3">
-            <p className="font-display text-base font-bold">AI positioning</p>
+            <p className="font-display text-base font-bold">Growth positioning</p>
             <Sparkles className="h-4 w-4 text-hopon-red" />
           </div>
-          <p className="mt-1.5 text-sm leading-5 text-black/65">Premium matcha desserts for weekend visits.</p>
+          <p className={`${compact ? 'text-xs leading-4' : 'text-sm leading-5'} mt-1.5 text-black/65`}>Premium matcha desserts for weekend visits.</p>
         </div>
-        <div className="mt-3 grid gap-2">
+        <div className={`mt-3 grid gap-2 ${compact ? 'hidden' : ''}`}>
           {['East Village', 'Dessert audience', 'Slow weekdays'].map((item) => (
             <div key={item} className="flex items-center gap-2 rounded-2xl bg-white/90 p-2.5 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
               <Check className="h-4 w-4 text-[#2F7D5B]" />
@@ -216,21 +214,21 @@ function ProfileScreen() {
   );
 }
 
-function CampaignScreen() {
+function CampaignScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <ScreenHeader title="Spring Matcha Launch" subtitle="Campaign generated" />
-      <div className="p-4">
-        <div className="rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] p-3.5 shadow-[0_12px_36px_rgba(255,42,42,0.10)]">
-          <AiLabel>AI generated</AiLabel>
+      <ScreenHeader title="Spring Matcha Launch" subtitle="Campaign generated" compact={compact} />
+      <div className={compact ? 'p-3' : 'p-4'}>
+        <div className={`rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] shadow-[0_12px_36px_rgba(255,42,42,0.10)] ${compact ? 'p-3' : 'p-3.5'}`}>
+          <AiLabel>Campaign ready</AiLabel>
           <p className="mt-3 font-display text-lg font-bold text-hopon-black">Weekend dessert run</p>
-          <p className="mt-1.5 text-sm leading-5 text-black/65">Turn the new roll into weekend visits.</p>
+          <p className={`${compact ? 'text-xs leading-4' : 'text-sm leading-5'} mt-1.5 text-black/65`}>Turn the new roll into weekend visits.</p>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-2 gap-2">
           <Metric label="Target" value="Dessert Fans" />
           <Metric label="Creators" value="8" tone="gold" />
         </div>
-        <div className="mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)]">
+        <div className={`mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)] ${compact ? 'hidden' : ''}`}>
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="font-display text-base font-bold text-hopon-black">Creator brief</p>
             <span className="rounded-full bg-[#EAF4EF] px-2 py-1 font-mono text-[10px] uppercase text-[#2F7D5B]">Ready</span>
@@ -247,14 +245,14 @@ function CampaignScreen() {
   );
 }
 
-function CreatorsScreen() {
+function CreatorsScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <ScreenHeader title="Creator matches" subtitle="Chinese creators in NYC" />
-      <div className="space-y-2.5 p-4">
-        {creators.map((creator) => (
+      <ScreenHeader title="Creator matches" subtitle="Chinese creators in NYC" compact={compact} />
+      <div className={`space-y-2 ${compact ? 'p-3' : 'p-4'}`}>
+        {creators.slice(0, compact ? 2 : 3).map((creator) => (
           <div key={creator.handle} className="flex items-center gap-3 rounded-3xl bg-white p-2.5 shadow-[0_12px_34px_rgba(0,0,0,0.06)]">
-            <img src={creator.avatar} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+            <img src={creator.avatar} alt="" className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} shrink-0 rounded-full object-cover`} />
             <div className="min-w-0 flex-1">
               <div className="font-display text-base font-bold text-hopon-black">{creator.name}</div>
               <div className="font-mono text-[10px] uppercase text-black/50">@{creator.handle}</div>
@@ -266,7 +264,7 @@ function CreatorsScreen() {
             </div>
           </div>
         ))}
-        <div className="rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] p-3.5 text-hopon-black shadow-[0_12px_36px_rgba(255,42,42,0.10)]">
+        <div className={`rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] p-3.5 text-hopon-black shadow-[0_12px_36px_rgba(255,42,42,0.10)] ${compact ? 'hidden' : ''}`}>
           <AiLabel>Audience insight</AiLabel>
           <p className="mt-2 font-display text-base font-bold">Reach customers other platforms miss.</p>
           <p className="mt-1 text-sm leading-5 text-black/65">Chinese creator networks in major U.S. cities.</p>
@@ -276,18 +274,18 @@ function CreatorsScreen() {
   );
 }
 
-function ReviewScreen() {
+function ReviewScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <ScreenHeader title="Post review" subtitle="Draft revision" />
-      <div className="p-4">
-        <div className="rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] p-3.5 shadow-[0_12px_36px_rgba(255,42,42,0.10)]">
+      <ScreenHeader title="Post review" subtitle="Draft revision" compact={compact} />
+      <div className={compact ? 'p-3' : 'p-4'}>
+        <div className={`rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] shadow-[0_12px_36px_rgba(255,42,42,0.10)] ${compact ? 'p-3' : 'p-3.5'}`}>
           <div className="mb-3 flex items-center justify-between">
-            <AiLabel>AI notes</AiLabel>
+            <AiLabel>Review notes</AiLabel>
             <MessageSquareText className="h-5 w-5 text-hopon-red" />
           </div>
           <p className="font-display text-lg font-bold leading-tight text-hopon-black">Make the first bite the hook.</p>
-          <p className="mt-1.5 text-sm leading-5 text-black/65">Suggested revision for stronger local response.</p>
+          <p className={`${compact ? 'hidden' : 'mt-1.5 text-sm leading-5'} text-black/65`}>Suggested revision for stronger local response.</p>
         </div>
 
         <div className="mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)]">
@@ -302,7 +300,7 @@ function ReviewScreen() {
           </div>
         </div>
 
-        <div className="mt-3 space-y-2.5">
+        <div className={`mt-3 space-y-2.5 ${compact ? 'hidden' : ''}`}>
           {[
             ['Maya Chen', 'Needs hook edit', 'Revise'],
             ['Iris Lin', 'Caption updated', 'Review'],
@@ -322,17 +320,17 @@ function ReviewScreen() {
   );
 }
 
-function ConversionScreen() {
+function ConversionScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <ScreenHeader title="Offline conversion" subtitle="Customer view" />
-      <div className="p-4">
-        <div className="rounded-3xl border border-hopon-red bg-[#FFF5F5] p-3.5 shadow-[0_12px_36px_rgba(255,42,42,0.12)]">
+      <ScreenHeader title="Offline conversion" subtitle="Customer view" compact={compact} />
+      <div className={compact ? 'p-3' : 'p-4'}>
+        <div className={`rounded-3xl border border-hopon-red bg-[#FFF5F5] shadow-[0_12px_36px_rgba(255,42,42,0.12)] ${compact ? 'p-3' : 'p-3.5'}`}>
           <div className="mb-2 flex items-center justify-between">
             <p className="font-mono text-[10px] uppercase text-hopon-red">Selected campaign</p>
             <CheckCircle2 className="h-5 w-5 text-hopon-red" />
           </div>
-          <p className="font-display text-xl font-bold leading-tight text-hopon-black">Spring Matcha Launch</p>
+          <p className={`${compact ? 'text-lg' : 'text-xl'} font-display font-bold leading-tight text-hopon-black`}>Spring Matcha Launch</p>
           <p className="mt-1 font-mono text-[10px] uppercase text-black/50">Atelier Matcha</p>
         </div>
         <div className="mt-3 flex items-center gap-3 rounded-3xl bg-white p-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.06)]">
@@ -343,7 +341,7 @@ function ConversionScreen() {
           </div>
           <span className="rounded-full bg-[#EAF4EF] px-2 py-1 font-mono text-[10px] uppercase text-[#2F7D5B]">Seen</span>
         </div>
-        <div className="mt-4 rounded-3xl bg-[#EAF4EF] p-3.5 text-[#2F7D5B] shadow-[0_16px_44px_rgba(47,125,91,0.16)]">
+        <div className={`mt-4 rounded-3xl bg-[#EAF4EF] text-[#2F7D5B] shadow-[0_16px_44px_rgba(47,125,91,0.16)] ${compact ? 'p-3' : 'p-3.5'}`}>
           <div className="flex items-start justify-between">
             <Gift className="h-7 w-7" />
             <span className="rounded-full bg-white/80 px-2 py-1 font-mono text-[10px] uppercase">Ready</span>
@@ -359,11 +357,11 @@ function ConversionScreen() {
   );
 }
 
-function RoiScreen() {
+function RoiScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <ScreenHeader title="ROI dashboard" subtitle="Campaign complete" />
-      <div className="p-4">
+      <ScreenHeader title="ROI dashboard" subtitle="Campaign complete" compact={compact} />
+      <div className={compact ? 'p-3' : 'p-4'}>
         <div className="grid grid-cols-2 gap-3">
           <Metric label="Visits" value="42" tone="green" />
           <Metric label="Revenue" value="$1,680" tone="gold" />
@@ -381,7 +379,7 @@ function RoiScreen() {
             <path d="M10 78 C48 74, 58 68, 86 58 S132 42, 158 30 S194 18, 220 12 L220 88 L10 88 Z" fill="#FF2A2A" opacity="0.08" />
           </svg>
         </div>
-        <div className="mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)]">
+        <div className={`mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)] ${compact ? 'hidden' : ''}`}>
           <p className="font-display text-base font-bold text-hopon-black">Creator performance</p>
           <div className="mt-2 space-y-2">
             {[
@@ -405,15 +403,15 @@ function RoiScreen() {
   );
 }
 
-function PhoneScreen({ active }: { active: DemoStepId }) {
+function PhoneScreen({ active, compact = false }: { active: DemoStepId; compact?: boolean }) {
   return (
     <div key={active} className="demo-phone-screen">
-      {active === 'profile' && <ProfileScreen />}
-      {active === 'campaign' && <CampaignScreen />}
-      {active === 'creators' && <CreatorsScreen />}
-      {active === 'review' && <ReviewScreen />}
-      {active === 'conversion' && <ConversionScreen />}
-      {active === 'roi' && <RoiScreen />}
+      {active === 'profile' && <ProfileScreen compact={compact} />}
+      {active === 'campaign' && <CampaignScreen compact={compact} />}
+      {active === 'creators' && <CreatorsScreen compact={compact} />}
+      {active === 'review' && <ReviewScreen compact={compact} />}
+      {active === 'conversion' && <ConversionScreen compact={compact} />}
+      {active === 'roi' && <RoiScreen compact={compact} />}
     </div>
   );
 }
@@ -450,19 +448,20 @@ function MobileDemoStepper() {
         finishSwipe(touch.clientX, touch.clientY);
       }}
     >
-      <div key={active} className="demo-mobile-step-card rounded-[28px] border border-black/10 bg-[#F7F2E8] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between gap-4">
-          <p className="font-mono text-xs uppercase text-hopon-red">{step.eyebrow}</p>
+      <div key={active} className="demo-mobile-step-card rounded-2xl border border-black/10 bg-[#F7F2E8] px-3 py-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] uppercase text-hopon-red">{step.eyebrow}</p>
+            <h3 className="truncate font-display text-lg font-bold leading-tight text-hopon-black">{step.title}</h3>
+          </div>
           <p className="font-mono text-xs uppercase text-black/40">
             {activeIndex + 1}/{steps.length}
           </p>
         </div>
-        <h3 className="mt-2 font-display text-2xl font-bold leading-tight text-hopon-black">{step.title}</h3>
-        <p className="mt-3 text-sm leading-6 text-black/70">{step.copy}</p>
 
-        <div className="mt-4 flex items-center justify-between gap-4">
-          <p className="font-mono text-[10px] uppercase text-black/45">Swipe sideways</p>
-          <div className="flex flex-1 justify-end gap-2" aria-label="Demo progress">
+        <div className="mt-1.5 flex items-center justify-between gap-4">
+          <p className="font-mono text-[9px] uppercase text-black/45">Swipe</p>
+          <div className="flex flex-1 justify-end gap-1.5" aria-label="Demo progress">
           {steps.map((item, index) => (
             <span
               key={item.id}
@@ -479,9 +478,9 @@ function MobileDemoStepper() {
         </div>
       </div>
 
-      <div className="mt-4 touch-pan-y">
+      <div className="mt-2 touch-pan-y">
         <PhoneFrame compact>
-          <PhoneScreen active={active} />
+          <PhoneScreen active={active} compact />
         </PhoneFrame>
       </div>
     </div>
@@ -494,22 +493,20 @@ export const InteractiveProductDemo: React.FC = () => {
   const visible = manualActive || active;
 
   return (
-    <section id="demo" className="scroll-mt-24 bg-white px-5 py-10 md:px-12 md:py-28 lg:px-16">
+    <section id="demo" className="scroll-mt-24 bg-white px-5 py-5 md:px-12 md:py-28 lg:px-16">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 max-w-3xl md:mb-12">
-          <p className="mb-4 font-mono text-xs uppercase text-black/50">Interactive Product Demo</p>
+        <div className="mb-4 max-w-3xl md:mb-12">
+          <p className="mb-3 font-mono text-xs uppercase text-black/50">Product demo</p>
           <h2 className="font-display text-3xl font-bold leading-tight text-hopon-black md:text-6xl">
-            Walk through the app from campaign idea to ROI.
+            How hOpOn Works
           </h2>
-          <p className="mt-5 text-base leading-7 text-black/70 md:text-lg">
-            See how Hopon moves a real merchant from an idea to creators, customer visits, and revenue.
-          </p>
         </div>
 
         <MobileDemoStepper />
 
         <div className="hidden gap-10 lg:grid lg:grid-cols-[0.88fr_1.12fr]">
-          <div className="space-y-8 lg:space-y-28">
+          <div>
+          <div className="space-y-10 lg:space-y-24">
             {steps.map((step) => (
               <div
                 key={step.id}
@@ -517,7 +514,7 @@ export const InteractiveProductDemo: React.FC = () => {
                   refs.current[step.id] = node;
                 }}
                 data-step={step.id}
-                className={`min-h-[280px] rounded-3xl border p-6 transition-all duration-300 ease-out ${
+                className={`min-h-[300px] rounded-3xl border p-6 transition-all duration-500 ease-out ${
                   visible === step.id
                     ? 'translate-y-[-4px] border-black bg-[#F7F2E8] shadow-[0_18px_60px_rgba(0,0,0,0.10)]'
                     : 'translate-y-0 border-black/10 bg-white shadow-none'
@@ -530,6 +527,7 @@ export const InteractiveProductDemo: React.FC = () => {
                 <p className="mt-4 max-w-xl text-base leading-7 text-black/70">{step.copy}</p>
               </div>
             ))}
+          </div>
           </div>
 
           <div className="lg:sticky lg:top-28 lg:self-start">
@@ -547,18 +545,23 @@ export const WhyHopon: React.FC = () => {
   const points = [
     {
       icon: UsersRound,
-      title: 'Reach the customers other platforms miss',
-      copy: 'Hopon helps businesses connect with high-performing Chinese creators across major U.S. cities.',
+      title: 'Reach Creators for Free',
+      copy: 'Stop spending hours sending DMs. hOpOn connects you with local creators nearby.',
     },
     {
-      icon: Clock3,
-      title: 'Save owner time',
-      copy: 'The app handles campaign setup, creator coordination, draft revision, post review, and follow-up.',
+      icon: Sparkles,
+      title: 'Reach Customers Other Platforms Miss',
+      copy: 'Reach high-intent Chinese consumers through Xiaohongshu and local creator communities.',
+    },
+    {
+      icon: MessageSquareText,
+      title: 'Grow Without Hiring a Marketing Team',
+      copy: 'hOpOn handles campaigns, creator matching, and follow-up so owners can run the business.',
     },
     {
       icon: ReceiptText,
-      title: 'See what worked',
-      copy: 'Merchants see visits, revenue, and creator performance in one mobile-first flow.',
+      title: 'Pay for Growth, Not Guesswork',
+      copy: 'See which creators brought people in. Only pay when growth happens.',
     },
   ];
 
@@ -566,12 +569,12 @@ export const WhyHopon: React.FC = () => {
     <AnimatedSection id="why" className="bg-hopon-black text-white">
       <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
         <div>
-          <p className="mb-4 font-mono text-xs uppercase text-white/50">Why Hopon</p>
+          <p className="mb-4 font-mono text-xs uppercase text-white/50">Why hOpOn</p>
           <h2 className="font-display text-4xl font-bold leading-tight md:text-6xl">
-            Built for local merchants who need customers, not dashboards.
+            Built for Busy Local Owners
           </h2>
         </div>
-        <div className="grid gap-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {points.map((point) => {
             const Icon = point.icon;
             return (
@@ -596,30 +599,22 @@ export const FinalCTA: React.FC = () => {
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 rounded-[32px] border border-black/10 bg-white p-8 shadow-[0_24px_80px_rgba(0,0,0,0.12)] md:p-12 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
           <div>
-            <p className="mb-4 font-mono text-xs uppercase text-black/50">Download Hopon</p>
+            <p className="mb-4 font-mono text-xs uppercase text-black/50">Start growing</p>
             <h2 className="font-display text-4xl font-bold leading-tight text-hopon-black md:text-7xl">
-              Let Hopon handle your local marketing.
+              Ready to Grow?
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-black/70 md:text-lg">
-              Launch campaigns, bring in customers, and see what worked without hiring a marketing team.
+              More customers. Less marketing. No marketing team required.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+          <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">
             <Link
               to="/merchant/signup"
               className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg bg-hopon-black px-6 py-4 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red"
             >
-              Grow Now
+              Start Growing
               <MousePointerClick className="h-4 w-4" />
             </Link>
-            <AppStoreBadge className="w-full" />
-            <a
-              href="#demo"
-              className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg border border-black bg-white px-6 py-4 font-display text-sm font-bold uppercase text-hopon-black transition-colors hover:bg-hopon-grey"
-            >
-              View Demo
-              <Gift className="h-4 w-4" />
-            </a>
           </div>
         </div>
       </div>

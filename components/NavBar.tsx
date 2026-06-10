@@ -32,7 +32,7 @@ export const NavBar: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-display text-xl font-bold leading-none md:text-2xl">hOpOn</span>
-            <span className="mt-0.5 font-mono text-[10px] uppercase leading-none text-black/60">AI marketing team</span>
+            <span className="mt-0.5 font-mono text-[10px] uppercase leading-none text-black/60">Local growth platform</span>
           </div>
         </Link>
 
@@ -41,13 +41,13 @@ export const NavBar: React.FC = () => {
             Demo
           </a>
           <a href="/#why" className="hidden font-display text-sm font-bold uppercase hover:underline md:block">
-            Why Hopon
+            Why hOpOn
           </a>
           <Link
             to="/merchant/signup"
             className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-xs font-bold uppercase text-white transition-colors hover:bg-hopon-red md:px-5"
           >
-            Grow Now
+            Start Growing
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

@@ -239,13 +239,13 @@ export const Hero: React.FC = () => {
         <div className={`fade-up-enter ${isVisible ? 'fade-up-active' : ''}`}>
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 font-mono text-xs uppercase text-black/60">
             <TrendingUp className="h-4 w-4 text-hopon-red" />
-            AI-powered revenue-based local growth
+            AI growth platform for local businesses
           </p>
           <h1 className="font-display text-4xl font-bold leading-[0.98] text-hopon-black md:text-7xl lg:text-8xl">
-            Your AI Marketing Team Brings Real Customers
+            More Customers. Less Marketing.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-black/70 md:text-xl md:leading-8">
-            Hopon is the app that creates campaigns, brings creators, tracks visits, and shows ROI.
+            Get discovered by local creators, reach customers other platforms miss, and track what actually drives growth.
           </p>
           <div className="mt-6 lg:hidden">
             <MobileHeroVisual />
@@ -255,18 +255,12 @@ export const Hero: React.FC = () => {
               to="/merchant/signup"
               className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg bg-hopon-black px-6 py-4 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red"
             >
-              Grow Now
+              Start Growing
               <ArrowRight className="h-4 w-4" />
             </Link>
             <AppStoreBadge />
-            <a
-              href="#demo"
-              className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg border border-black bg-white px-6 py-4 font-display text-sm font-bold uppercase text-hopon-black transition-colors hover:bg-hopon-grey"
-            >
-              See Demo
-              <ArrowRight className="h-4 w-4" />
-            </a>
           </div>
+          <p className="mt-4 font-mono text-xs uppercase text-black/50">No marketing team required.</p>
         </div>
 
         <div className={`relative hidden fade-up-enter lg:block ${isVisible ? 'fade-up-active stagger-2' : ''}`}>

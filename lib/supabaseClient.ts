@@ -455,7 +455,7 @@ const asSectionArray = (value: unknown): GeoSection[] =>
 const asCTA = (value: unknown): GeoCTA | null => {
   if (!isRecord(value)) return null;
 
-  const label = asString(value.label, asString(value.text, 'Learn More'));
+  const label = asString(value.label, asString(value.text, 'See Details'));
   if (!label) return null;
 
   return {
