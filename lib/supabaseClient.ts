@@ -152,28 +152,6 @@ export async function redeemCode(codeText: string): Promise<ValidateOrRedeemResu
   return normalizeRpcResponse(data);
 }
 
-/** 记录未登录用户的 promocode 兑换（仅插入，不阻塞 UI）。 */
-export function trackAnonymousRedemption(payload: {
-  code_text: string;
-  template_code_name: string;
-  code_id?: string;
-}): void {
-  try {
-    getClient()
-      .from('anonymous_redemptions')
-      .insert({
-        code_text: payload.code_text.trim(),
-        template_code_name: payload.template_code_name,
-        code_id: payload.code_id || null,
-      })
-      .then(({ error }) => {
-        if (error) console.warn('[trackAnonymousRedemption]', error.message);
-      });
-  } catch {
-    // 忽略：未配置 Supabase 或表不存在时不报错
-  }
-}
-
 export type HoponRedeemCreator = {
   id: string;
   name: string;
@@ -565,46 +543,9 @@ export function trackHoponOfferRedeem(payload: {
       .then(({ error }) => {
         if (!error) return;
         console.warn('[record_public_offer_redemption]', error.message);
-        getClient()
-          .from('anonymous_redemptions')
-          .insert({
-            code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
-            template_code_name: 'hopon_in_store_offer',
-            metadata: {
-              client_redemption_id: clientRedemptionId,
-              campaign_id: payload.campaignId,
-              creator_id: payload.creatorId,
-              offer_type: payload.offerType,
-              offer_value: payload.offerValue,
-              ...metadata,
-            },
-          })
-          .then(({ error: fallbackError }) => {
-            if (fallbackError) console.warn('[trackHoponOfferRedeem fallback]', fallbackError.message);
-          });
       });
-  } catch {
-    try {
-      getClient()
-        .from('anonymous_redemptions')
-        .insert({
-          code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
-          template_code_name: 'hopon_in_store_offer',
-          metadata: {
-            client_redemption_id: clientRedemptionId,
-            campaign_id: payload.campaignId,
-            creator_id: payload.creatorId,
-            offer_type: payload.offerType,
-            offer_value: payload.offerValue,
-            ...metadata,
-          },
-        })
-        .then(({ error }) => {
-          if (error) console.warn('[trackHoponOfferRedeem fallback]', error.message);
-        });
-    } catch {
-      // Non-blocking: the customer should still be able to show the offer in-store.
-    }
+  } catch (error) {
+    console.warn('[record_public_offer_redemption]', error);
   }
 }
 
