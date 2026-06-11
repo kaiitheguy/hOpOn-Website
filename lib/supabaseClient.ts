@@ -179,6 +179,7 @@ export type HoponRedeemCreator = {
   name: string;
   handle: string;
   avatarUrl?: string | null;
+  avatarExpiresAt?: string | null;
   platform: string;
   label: string;
 };
@@ -216,6 +217,66 @@ const normalizeHandle = (handle?: string | null): string =>
   String(handle || 'creator').trim().replace(/^@+/, '') || 'creator';
 
 const TEST_CAMPAIGN_PATTERN = /test|demo|sandbox|internal|\bqa\b|测试|測試/i;
+const VERIFY_AVATAR_CACHE_KEY = 'hopon:verify-avatar-cache:v1';
+
+type VerifyAvatarCache = Record<string, { url: string; expiresAt: string }>;
+
+function readVerifyAvatarCache(): VerifyAvatarCache {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(VERIFY_AVATAR_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as VerifyAvatarCache;
+  } catch {
+    return {};
+  }
+}
+
+function writeVerifyAvatarCache(cache: VerifyAvatarCache): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(VERIFY_AVATAR_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Non-critical: the page can still render initials.
+  }
+}
+
+function isFreshAvatarCacheEntry(entry: { url: string; expiresAt: string } | undefined): entry is { url: string; expiresAt: string } {
+  if (!entry?.url || !entry.expiresAt) return false;
+  return Date.parse(entry.expiresAt) > Date.now() + 60_000;
+}
+
+function cacheVerifyAvatars(campaigns: HoponRedeemCampaign[]): void {
+  const cache = readVerifyAvatarCache();
+  let changed = false;
+  for (const campaign of campaigns) {
+    for (const creator of campaign.creators) {
+      if (!creator.avatarUrl || !creator.avatarExpiresAt) continue;
+      cache[creator.id] = { url: creator.avatarUrl, expiresAt: creator.avatarExpiresAt };
+      changed = true;
+    }
+  }
+  if (changed) writeVerifyAvatarCache(cache);
+}
+
+function applyCachedVerifyAvatars(campaigns: HoponRedeemCampaign[]): HoponRedeemCampaign[] {
+  const cache = readVerifyAvatarCache();
+  return campaigns.map((campaign) => ({
+    ...campaign,
+    creators: campaign.creators.map((creator) => {
+      if (creator.avatarUrl) return creator;
+      const cached = cache[creator.id];
+      if (!isFreshAvatarCacheEntry(cached)) return creator;
+      return {
+        ...creator,
+        avatarUrl: cached.url,
+        avatarExpiresAt: cached.expiresAt,
+      };
+    }),
+  }));
+}
 
 function isLikelyPublicOpenCampaign(campaign: {
   title?: string | null;
@@ -304,6 +365,7 @@ function normalizePublicRedeemCampaigns(raw: unknown): HoponRedeemCampaign[] {
             name,
             handle,
             avatarUrl: typeof row.avatarUrl === 'string' ? row.avatarUrl : null,
+            avatarExpiresAt: typeof row.avatarExpiresAt === 'string' ? row.avatarExpiresAt : null,
             platform: typeof row.platform === 'string' ? row.platform : 'Social',
             label: typeof row.label === 'string' ? row.label : 'Local food creator',
           };
@@ -342,12 +404,25 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
   if (!isSupabaseConfigured()) return [];
 
   try {
+    const { data: functionCampaigns, error: functionError } = await getClient().functions.invoke('public-redeem-campaigns', {
+      body: { limit: 12 },
+    });
+
+    if (!functionError) {
+      const campaigns = normalizePublicRedeemCampaigns(functionCampaigns);
+      cacheVerifyAvatars(campaigns);
+      return applyCachedVerifyAvatars(campaigns);
+    }
+
+    console.warn('[listActiveHoponRedeemCampaigns] public function failed, falling back to RPC', functionError.message);
+
     const { data: publicCampaigns, error: publicError } = await getClient().rpc('list_public_redeem_campaigns', {
       p_limit: 12,
     });
 
     if (!publicError) {
-      return normalizePublicRedeemCampaigns(publicCampaigns);
+      const campaigns = normalizePublicRedeemCampaigns(publicCampaigns);
+      return applyCachedVerifyAvatars(campaigns);
     }
 
     if (!isMissingRpcError(publicError)) {
