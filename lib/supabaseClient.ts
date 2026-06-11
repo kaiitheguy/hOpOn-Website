@@ -283,10 +283,78 @@ export const fallbackRedeemCampaigns: HoponRedeemCampaign[] = [
   },
 ];
 
+function normalizePublicRedeemCampaigns(raw: unknown): HoponRedeemCampaign[] {
+  if (!Array.isArray(raw)) return [];
+
+  return raw
+    .map((item): HoponRedeemCampaign | null => {
+      if (!item || typeof item !== 'object') return null;
+      const campaign = item as Record<string, unknown>;
+      const creators = Array.isArray(campaign.creators) ? campaign.creators : [];
+      const normalizedCreators = creators
+        .map((creator): HoponRedeemCreator | null => {
+          if (!creator || typeof creator !== 'object') return null;
+          const row = creator as Record<string, unknown>;
+          const id = typeof row.id === 'string' ? row.id : '';
+          const name = typeof row.name === 'string' ? row.name : '';
+          const handle = typeof row.handle === 'string' ? normalizeHandle(row.handle) : 'creator';
+          if (!id || !name) return null;
+          return {
+            id,
+            name,
+            handle,
+            avatarUrl: typeof row.avatarUrl === 'string' ? row.avatarUrl : null,
+            platform: typeof row.platform === 'string' ? row.platform : 'Social',
+            label: typeof row.label === 'string' ? row.label : 'Local food creator',
+          };
+        })
+        .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
+
+      const id = typeof campaign.id === 'string' ? campaign.id : '';
+      const title = typeof campaign.title === 'string' ? campaign.title : '';
+      if (!id || !title || normalizedCreators.length === 0) return null;
+
+      return {
+        id,
+        title,
+        merchantName: typeof campaign.merchantName === 'string' ? campaign.merchantName : 'Hopon merchant',
+        status: typeof campaign.status === 'string' ? campaign.status : 'OPEN',
+        offerType: 'percent_off',
+        offerValue: typeof campaign.offerValue === 'number' ? campaign.offerValue : 5,
+        startDate: typeof campaign.startDate === 'string' ? campaign.startDate : null,
+        endDate: typeof campaign.endDate === 'string' ? campaign.endDate : null,
+        creators: normalizedCreators,
+      };
+    })
+    .filter((campaign): campaign is HoponRedeemCampaign => Boolean(campaign));
+}
+
+function isMissingRpcError(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return (
+    error.code === '42883' ||
+    error.code === 'PGRST202' ||
+    /function .*list_public_redeem_campaigns/i.test(error.message || '')
+  );
+}
+
 export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampaign[]> {
   if (!isSupabaseConfigured()) return [];
 
   try {
+    const { data: publicCampaigns, error: publicError } = await getClient().rpc('list_public_redeem_campaigns', {
+      p_limit: 12,
+    });
+
+    if (!publicError) {
+      return normalizePublicRedeemCampaigns(publicCampaigns);
+    }
+
+    if (!isMissingRpcError(publicError)) {
+      console.warn('[listActiveHoponRedeemCampaigns] public RPC failed', publicError.message);
+      return [];
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const { data, error } = await getClient()
       .from('campaigns')
