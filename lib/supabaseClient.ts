@@ -278,6 +278,20 @@ function applyCachedVerifyAvatars(campaigns: HoponRedeemCampaign[]): HoponRedeem
   }));
 }
 
+function createClientRedemptionId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (char) => {
+    const randomValue =
+      typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function'
+        ? crypto.getRandomValues(new Uint8Array(1))[0]
+        : Math.floor(Math.random() * 256);
+    return (Number(char) ^ (randomValue & (15 >> (Number(char) / 4)))).toString(16);
+  });
+}
+
 function isLikelyPublicOpenCampaign(campaign: {
   title?: string | null;
   description?: string | null;
@@ -530,29 +544,67 @@ export function trackHoponOfferRedeem(payload: {
   offerType: 'percent_off';
   offerValue: number;
 }): void {
+  const clientRedemptionId = createClientRedemptionId();
+
+  const metadata = {
+    campaign_title: payload.campaignTitle,
+    merchant_name: payload.merchantName,
+    creator_handle: payload.creatorHandle,
+  };
+
   try {
-    // TODO: Replace this compatibility insert with a dedicated public offer_redemptions table
-    // when the production schema adds campaign_id, creator_id, offer_type, and offer_value columns.
     getClient()
-      .from('anonymous_redemptions')
-      .insert({
-        code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
-        template_code_name: 'hopon_in_store_offer',
-        metadata: {
-          campaign_id: payload.campaignId,
-          campaign_title: payload.campaignTitle,
-          merchant_name: payload.merchantName,
-          creator_id: payload.creatorId,
-          creator_handle: payload.creatorHandle,
-          offer_type: payload.offerType,
-          offer_value: payload.offerValue,
-        },
+      .rpc('record_public_offer_redemption', {
+        p_campaign_id: payload.campaignId,
+        p_creator_id: payload.creatorId,
+        p_client_redemption_id: clientRedemptionId,
+        p_offer_type: payload.offerType,
+        p_offer_value: payload.offerValue,
+        p_metadata: metadata,
       })
       .then(({ error }) => {
-        if (error) console.warn('[trackHoponOfferRedeem]', error.message);
+        if (!error) return;
+        console.warn('[record_public_offer_redemption]', error.message);
+        getClient()
+          .from('anonymous_redemptions')
+          .insert({
+            code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
+            template_code_name: 'hopon_in_store_offer',
+            metadata: {
+              client_redemption_id: clientRedemptionId,
+              campaign_id: payload.campaignId,
+              creator_id: payload.creatorId,
+              offer_type: payload.offerType,
+              offer_value: payload.offerValue,
+              ...metadata,
+            },
+          })
+          .then(({ error: fallbackError }) => {
+            if (fallbackError) console.warn('[trackHoponOfferRedeem fallback]', fallbackError.message);
+          });
       });
   } catch {
-    // Non-blocking: the customer should still be able to show the offer in-store.
+    try {
+      getClient()
+        .from('anonymous_redemptions')
+        .insert({
+          code_text: `hopon:${payload.campaignId}:${payload.creatorId}`,
+          template_code_name: 'hopon_in_store_offer',
+          metadata: {
+            client_redemption_id: clientRedemptionId,
+            campaign_id: payload.campaignId,
+            creator_id: payload.creatorId,
+            offer_type: payload.offerType,
+            offer_value: payload.offerValue,
+            ...metadata,
+          },
+        })
+        .then(({ error }) => {
+          if (error) console.warn('[trackHoponOfferRedeem fallback]', error.message);
+        });
+    } catch {
+      // Non-blocking: the customer should still be able to show the offer in-store.
+    }
   }
 }
 
