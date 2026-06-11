@@ -9,6 +9,7 @@ import {
   type HoponRedeemCampaign,
   type HoponRedeemCreator,
 } from '../lib/supabaseClient';
+import { isSafeImageUrl } from '../lib/safeImageUrl';
 
 type RedeemStep = 'campaign' | 'creator' | 'offer';
 
@@ -77,6 +78,9 @@ function CreatorCard({
   onClick: () => void;
   key?: React.Key;
 }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const avatarUrl = !imageFailed && isSafeImageUrl(creator.avatarUrl) ? creator.avatarUrl : null;
+
   return (
     <button
       type="button"
@@ -85,8 +89,13 @@ function CreatorCard({
         selected ? 'border-hopon-red bg-[#FFF5F5]' : 'border-black/10 bg-white hover:border-black'
       }`}
     >
-      {creator.avatarUrl ? (
-        <img src={creator.avatarUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
+      {avatarUrl ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          className="h-12 w-12 rounded-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
       ) : (
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-hopon-red font-display font-bold text-white">
           {initials(creator.name)}
