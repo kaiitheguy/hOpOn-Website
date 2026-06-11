@@ -88,7 +88,7 @@ function HeroPhone() {
   );
 }
 
-function OutcomeCard({ card, className = '' }: { card: (typeof outcomeCards)[number]; className?: string }) {
+function OutcomeCard({ card, className = '' }: { card: (typeof outcomeCards)[number]; className?: string; key?: React.Key }) {
   return (
     <div className={`rounded-2xl border border-black/10 bg-white p-4 shadow-[0_16px_40px_rgba(0,0,0,0.08)] ${className}`}>
       <p className="font-mono text-[10px] uppercase text-black/50">{card.merchant}</p>

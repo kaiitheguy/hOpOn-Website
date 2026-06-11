@@ -19,3 +19,9 @@ export function getPlatformOptions(isZh: boolean): { label: string; value: Creat
     value,
   }));
 }
+
+export function getPlatformLabel(platform: string, isZh: boolean): string {
+  const normalized = platform.toLowerCase() as CreatorSocialPlatform;
+  if (normalized in PLATFORM_LABEL) return PLATFORM_LABEL[normalized][isZh ? 'zh' : 'en'];
+  return platform;
+}

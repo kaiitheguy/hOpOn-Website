@@ -83,8 +83,8 @@ export const CampaignDetail: React.FC = () => {
   }, [toast]);
 
   const acceptedApps = applications.filter((a) => a.status === 'ACCEPTED');
-  const draftByAppId = new Map(draftPosts.map((d) => [d.application_id, d]));
-  const delivByAppId = new Map(deliverables.map((d) => [d.application_id, d]));
+  const draftByAppId = new Map<string, DraftPost>(draftPosts.map((d) => [d.application_id, d]));
+  const delivByAppId = new Map<string, Deliverable>(deliverables.map((d) => [d.application_id, d]));
 
   const handleNudge = async (app: Application) => {
     if (nudgingId) return;
@@ -183,7 +183,7 @@ export const CampaignDetail: React.FC = () => {
     return (
       <div className="py-12 text-center">
         <p className="text-black/80">{isZh ? '活动不存在。' : 'Campaign not found.'}</p>
-        <Link to="/merchant" className="mt-4 inline-block font-mono text-sm uppercase text-hopon-red hover:underline">
+        <Link to="/merchant/campaigns" className="mt-4 inline-block font-mono text-sm uppercase text-hopon-red hover:underline">
           {isZh ? '返回首页' : 'Back to home'}
         </Link>
       </div>
@@ -226,7 +226,7 @@ export const CampaignDetail: React.FC = () => {
       />
 
       <div className="flex items-center gap-2 mb-6">
-        <Link to="/merchant" className="font-mono text-sm uppercase text-black/60 hover:text-hopon-red">
+        <Link to="/merchant/campaigns" className="font-mono text-sm uppercase text-black/60 hover:text-hopon-red">
           ← {t.back}
         </Link>
       </div>
@@ -315,6 +315,12 @@ export const CampaignDetail: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <Link
+                        to={`/merchant/application/${app.id}/chat`}
+                        className="px-3 py-1.5 border-2 border-black font-mono text-xs uppercase hover:bg-hopon-grey"
+                      >
+                        {isZh ? '沟通' : 'Chat'}
+                      </Link>
                       <button
                         type="button"
                         onClick={() => openPreview(app, draft, deliv)}
@@ -332,6 +338,12 @@ export const CampaignDetail: React.FC = () => {
                       </button>
                       {draft?.status === 'SUBMITTED' && (
                         <>
+                          <Link
+                            to={`/merchant/application/${app.id}/draft-post`}
+                            className="px-3 py-1.5 border-2 border-black font-mono text-xs uppercase hover:bg-hopon-grey"
+                          >
+                            {isZh ? 'AI 审稿' : 'AI Review'}
+                          </Link>
                           <button
                             type="button"
                             onClick={() => handleApproveDraft(draft.id)}

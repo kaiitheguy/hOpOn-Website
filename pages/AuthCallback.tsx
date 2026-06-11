@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { getMerchantSessionState } from '../lib/merchant/api';
 import { BrandHeader } from '../components/BrandHeader';
 
 function parseHashParams(hash: string): Record<string, string> {
@@ -49,6 +50,15 @@ export const AuthCallback: React.FC = () => {
         if (session) {
           if (type === 'recovery') {
             navigate('/reset-password', { replace: true });
+            return;
+          }
+          const merchantState = await getMerchantSessionState();
+          if (merchantState.reason === 'ready') {
+            navigate('/merchant', { replace: true });
+            return;
+          }
+          if (merchantState.reason === 'rejected') {
+            navigate('/rejected', { replace: true });
             return;
           }
           navigate('/pending', { replace: true });

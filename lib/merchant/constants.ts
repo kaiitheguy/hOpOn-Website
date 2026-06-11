@@ -78,17 +78,17 @@ export const CAMPAIGN_LABEL = '活动';
 /** Review tab keys (申请审核, 待博主探店, ...) */
 export const REVIEW_TABS = {
   applications: 'applications',       // 申请审核
-  visitPending: 'visit_pending',     // 待博主探店
-  deliverablePending: 'deliverable_pending', // 待提交作业
-  finalPending: 'final_pending',     // 待提交终稿
-  deliverableReview: 'deliverable_review',   // 作业审核
+  visit_pending: 'visit_pending',     // 待博主探店
+  deliverable_pending: 'deliverable_pending', // 待提交作业
+  final_pending: 'final_pending',     // 待提交终稿
+  deliverable_review: 'deliverable_review',   // 作业审核
 } as const;
 
 /** Which applications belong to which review tab (merchant view) */
 export function getApplicationReviewTab(app: Application): keyof typeof REVIEW_TABS | null {
   const status = app.status;
   const campaignStatus = app.campaignStatus;
-  const verifiedAt = app.verified_at;
+  const verifiedAt = app.verifiedAt ?? app.verified_at;
   const draft = app.draft_post;
   const deliverable = app.deliverable;
 
@@ -101,14 +101,16 @@ export function getApplicationReviewTab(app: Application): keyof typeof REVIEW_T
   if (status === 'ACCEPTED' && verifiedAt) {
     const draftApproved = draft?.status === 'APPROVED';
     const dvStatus = deliverable?.status;
-    if (!draftApproved) return 'deliverable_pending';
-    if (dvStatus === 'REVISION_REQUESTED') return 'final_pending';
-    if (dvStatus === 'SUBMITTED' || dvStatus === 'APPROVED') return 'deliverable_review';
-    return 'deliverable_pending';
-  }
-  if (status === 'ACCEPTED' && draft?.status === 'APPROVED') {
-    const dvStatus = deliverable?.status;
-    if (!deliverable || dvStatus === 'REVISION_REQUESTED') return 'final_pending';
+    if (deliverable && dvStatus !== 'REVISION_REQUESTED') return 'deliverable_review';
+    if (draftApproved && (!deliverable || dvStatus === 'REVISION_REQUESTED')) return 'final_pending';
+    if (
+      !draft ||
+      draft.status === 'SUBMITTED' ||
+      draft.status === 'REVISION_REQUESTED' ||
+      dvStatus === 'SUBMITTED'
+    ) {
+      return 'deliverable_pending';
+    }
   }
   if (deliverable && deliverable.status !== 'REVISION_REQUESTED') {
     return 'deliverable_review';

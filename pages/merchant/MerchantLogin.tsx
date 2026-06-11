@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
+import { getMerchantSessionState } from '../../lib/merchant/api';
 import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 
 export const MerchantLogin: React.FC = () => {
@@ -8,6 +9,7 @@ export const MerchantLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,7 +27,31 @@ export const MerchantLogin: React.FC = () => {
     loginFailed: isZh ? '登录失败' : 'Login failed',
     noAccount: isZh ? '没有账号？' : "Don't have an account? ",
     signup: isZh ? '注册' : 'Sign up',
+    forgotPassword: isZh ? '忘记密码？' : 'Forgot password?',
+    resetSent: isZh ? '重置密码邮件已发送，请检查邮箱' : 'Password reset email sent. Check your inbox.',
+    resetFailed: isZh ? '发送失败' : 'Could not send reset email',
     backToHome: isZh ? '返回主站' : 'Back to home',
+  };
+
+  const routeAfterAuth = async () => {
+    const state = await getMerchantSessionState();
+    if (state.reason === 'pending') {
+      navigate('/pending', { replace: true });
+      return;
+    }
+    if (state.reason === 'rejected') {
+      navigate('/rejected', { replace: true });
+      return;
+    }
+    if (state.reason === 'missing_profile') {
+      navigate('/merchant/profile', { replace: true });
+      return;
+    }
+    if (state.reason === 'not_merchant' || !state.userId) {
+      setMessage({ type: 'error', text: isZh ? '该账号不是商家账号' : 'This is not a merchant account' });
+      return;
+    }
+    navigate(from, { replace: true });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -39,12 +65,26 @@ export const MerchantLogin: React.FC = () => {
         return;
       }
       setMessage({ type: 'success', text: copy.loginSuccess });
-      navigate(from, { replace: true });
+      await routeAfterAuth();
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : copy.loginFailed });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email.trim() || resetLoading) return;
+    setMessage(null);
+    setResetLoading(true);
+    const redirectTo = `${window.location.origin}/auth/callback?type=recovery`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    setResetLoading(false);
+    if (error) {
+      setMessage({ type: 'error', text: error.message || copy.resetFailed });
+      return;
+    }
+    setMessage({ type: 'success', text: copy.resetSent });
   };
 
   return (
@@ -70,9 +110,19 @@ export const MerchantLogin: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">
-              {copy.password}
-            </label>
+            <div className="flex items-center justify-between gap-3 mb-1">
+              <label htmlFor="password" className="block font-mono text-xs uppercase tracking-wider text-black/70">
+                {copy.password}
+              </label>
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={!email.trim() || resetLoading}
+                className="font-mono text-[11px] uppercase text-hopon-red hover:underline disabled:text-black/30"
+              >
+                {resetLoading ? '…' : copy.forgotPassword}
+              </button>
+            </div>
             <input
               id="password"
               type="password"

@@ -1,12 +1,13 @@
 import React from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Home, FileCheck, Search, Trophy, User } from 'lucide-react';
+import { BarChart3, Bell, BriefcaseBusiness, FileCheck, Search, Trophy, User } from 'lucide-react';
 import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 
 export const MerchantLayout: React.FC = () => {
-  const { locale, setLocale, t } = useMerchantLocale();
+  const { locale, setLocale, t, isZh } = useMerchantLocale();
   const nav = [
-    { to: '/merchant', end: true, label: t.home, icon: Home },
+    { to: '/merchant', end: true, label: isZh ? '主页' : 'Growth', icon: BarChart3 },
+    { to: '/merchant/campaigns', end: false, label: isZh ? '活动' : 'Campaigns', icon: BriefcaseBusiness },
     { to: '/merchant/review', end: false, label: t.review, icon: FileCheck },
     { to: '/merchant/hunt', end: false, label: t.hunt, icon: Search },
     { to: '/merchant/achievements', end: false, label: t.achievementsTitle, icon: Trophy },
@@ -14,8 +15,42 @@ export const MerchantLayout: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white text-hopon-black flex flex-col">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-black">
+    <div className="merchant-shell min-h-screen bg-[#F7F2E8] text-hopon-black flex flex-col">
+      <style>{`
+        .merchant-shell main :where(input, textarea, select).border-2 {
+          border-width: 1px;
+          border-color: rgb(0 0 0 / 0.14);
+          border-radius: 14px;
+          background: white;
+        }
+        .merchant-shell main :where(input, textarea, select).border-2:focus {
+          border-color: rgb(0 0 0 / 0.34);
+          box-shadow: 0 0 0 4px rgb(255 42 42 / 0.08);
+        }
+        .merchant-shell main :where(section, li, article, div).border-2.border-black.bg-white,
+        .merchant-shell main :where(section, li, article, div).border-2.border-black {
+          border-width: 1px;
+          border-color: rgb(0 0 0 / 0.12);
+          border-radius: 22px;
+        }
+        .merchant-shell main :where(section, li, article, div).border-2.border-black.bg-white {
+          box-shadow: 0 14px 38px rgb(0 0 0 / 0.035);
+        }
+        .merchant-shell main :where(button, a).border-2 {
+          border-width: 1px;
+          border-radius: 13px;
+        }
+        .merchant-shell main :where(button, a).bg-hopon-black {
+          box-shadow: 0 10px 24px rgb(0 0 0 / 0.10);
+        }
+        .merchant-shell main :where(.bg-hopon-grey) {
+          background-color: #FAFAF7;
+        }
+        .merchant-shell main :where(h1) {
+          letter-spacing: 0;
+        }
+      `}</style>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/10 bg-[#F7F2E8]/90 backdrop-blur">
         <div className="flex justify-between items-center h-14 px-4 md:px-8 max-w-[1920px] mx-auto">
           <Link
             to="/merchant"
@@ -46,29 +81,40 @@ export const MerchantLayout: React.FC = () => {
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 px-3 py-2 rounded font-mono text-xs uppercase tracking-wider border-2 transition-colors ${
+                  `flex items-center gap-2 px-3 py-2 rounded-full font-mono text-xs uppercase tracking-wider border transition-colors ${
                     isActive
-                      ? 'bg-hopon-black text-white border-black'
-                      : 'border-transparent text-black/70 hover:text-hopon-black hover:border-black/30'
+                      ? 'bg-hopon-black text-white border-hopon-black shadow-[0_8px_18px_rgba(0,0,0,0.10)]'
+                      : 'border-transparent text-black/65 hover:text-hopon-black hover:bg-white hover:border-black/10'
                   }`
                 }
               >
                 <Icon className="w-4 h-4" />
-                <span className="hidden sm:inline">{label}</span>
+                <span className="hidden md:inline">{label}</span>
               </NavLink>
             ))}
-            <div className="flex border-2 border-black/20 rounded ml-2">
+            <NavLink
+              to="/merchant/notifications"
+              className={({ isActive }) =>
+                `hidden sm:inline-flex items-center justify-center h-10 w-10 rounded-full border transition-colors ${
+                  isActive ? 'bg-hopon-red text-white border-hopon-red' : 'border-transparent text-black/65 hover:text-hopon-black hover:bg-white hover:border-black/10'
+                }`
+              }
+              aria-label={isZh ? '通知' : 'Notifications'}
+            >
+              <Bell className="w-4 h-4" />
+            </NavLink>
+            <div className="ml-2 flex overflow-hidden rounded-full border border-black/10 bg-white">
               <button
                 type="button"
                 onClick={() => setLocale('zh')}
-                className={`px-2 py-1 font-mono text-xs uppercase ${locale === 'zh' ? 'bg-hopon-black text-white' : 'bg-white text-black/70 hover:bg-black/5'}`}
+                className={`px-2.5 py-1.5 font-mono text-xs uppercase ${locale === 'zh' ? 'bg-hopon-black text-white' : 'text-black/60 hover:bg-black/5'}`}
               >
                 中
               </button>
               <button
                 type="button"
                 onClick={() => setLocale('en')}
-                className={`px-2 py-1 font-mono text-xs uppercase ${locale === 'en' ? 'bg-hopon-black text-white' : 'bg-white text-black/70 hover:bg-black/5'}`}
+                className={`px-2.5 py-1.5 font-mono text-xs uppercase ${locale === 'en' ? 'bg-hopon-black text-white' : 'text-black/60 hover:bg-black/5'}`}
               >
                 En
               </button>
@@ -76,7 +122,7 @@ export const MerchantLayout: React.FC = () => {
           </nav>
         </div>
       </header>
-      <main className="flex-1 pt-14 pb-8 px-4 md:px-8 max-w-[1200px] mx-auto w-full">
+      <main className="flex-1 pt-14 pb-8 px-4 md:px-8 max-w-[1320px] mx-auto w-full">
         <Outlet />
       </main>
     </div>

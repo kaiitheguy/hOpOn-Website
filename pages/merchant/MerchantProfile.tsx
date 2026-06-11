@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { User, Settings } from 'lucide-react';
-import { getCurrentUserId, getRestaurantProfile, updateRestaurantProfile, signOut } from '../../lib/merchant/api';
+import { getCurrentUserId, getRestaurantProfile, updateRestaurantProfile, signOut, uploadImageFileToSupabase } from '../../lib/merchant/api';
 import type { Restaurant } from '../../lib/merchant/types';
 import { SettingsSheet } from '../../components/merchant/SettingsSheet';
 import { isSafeImageUrl } from '../../lib/safeImageUrl';
@@ -20,6 +20,8 @@ function getCopy(isZh: boolean) {
     description: isZh ? '简介' : 'Description',
     descriptionPlaceholder: isZh ? '关于你的商家...' : 'About your business...',
     restaurantImage: isZh ? '商家图片' : 'Images',
+    uploadAvatar: isZh ? '上传头像' : 'Upload avatar',
+    uploadImages: isZh ? '上传图片' : 'Upload images',
     noImages: isZh ? '暂无图片' : 'No images',
     categories: isZh ? '标签' : 'Tags',
     mainCategory: isZh ? '主营类别' : 'Category',
@@ -58,6 +60,7 @@ export const MerchantProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -101,6 +104,8 @@ export const MerchantProfile: React.FC = () => {
       douyinHandle: profile.douyinHandle ?? undefined,
       tiktokHandle: profile.tiktokHandle ?? undefined,
       notes: profile.notes ?? undefined,
+      avatar_url: profile.avatar ?? profile.avatar_url ?? undefined,
+      gallery: profile.images ?? profile.gallery ?? undefined,
     });
     setSaving(false);
     if (updated) {
@@ -131,6 +136,35 @@ export const MerchantProfile: React.FC = () => {
         window.location.href = '/merchant/login';
       }
     }
+  };
+
+  const handleAvatarUpload = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file || !profile || !file.type.startsWith('image/')) return;
+    setUploading(true);
+    const url = await uploadImageFileToSupabase(file, 'avatars', profile.id);
+    if (url) {
+      setProfile({ ...profile, avatar: url, avatar_url: url });
+      await updateRestaurantProfile(profile.id, { avatar_url: url });
+      setToast(true);
+    }
+    setUploading(false);
+  };
+
+  const handleGalleryUpload = async (files: FileList | null) => {
+    if (!files || !profile) return;
+    setUploading(true);
+    const uploaded: string[] = [];
+    for (const file of Array.from(files).slice(0, 8)) {
+      if (!file.type.startsWith('image/')) continue;
+      const url = await uploadImageFileToSupabase(file, 'restaurants', profile.id);
+      if (url) uploaded.push(url);
+    }
+    const nextImages = [...(profile.images ?? profile.gallery ?? []), ...uploaded].slice(0, 12);
+    setProfile({ ...profile, images: nextImages, gallery: nextImages });
+    await updateRestaurantProfile(profile.id, { gallery: nextImages });
+    setToast(uploaded.length > 0);
+    setUploading(false);
   };
 
   const renderField = (
@@ -223,6 +257,21 @@ export const MerchantProfile: React.FC = () => {
         </div>
         <p className="font-display font-bold text-lg text-hopon-black">{profile.name || copy.noName}</p>
         <p className="text-sm text-black/60">{profile.location || ''}</p>
+        {isEditMode && (
+          <label className="mt-4 inline-flex h-10 cursor-pointer items-center justify-center border-2 border-black bg-white px-4 font-mono text-xs uppercase hover:bg-hopon-grey">
+            {uploading ? '…' : copy.uploadAvatar}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploading}
+              onChange={(event) => {
+                void handleAvatarUpload(event.target.files);
+                event.currentTarget.value = '';
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {/* 基本信息 */}
@@ -251,8 +300,21 @@ export const MerchantProfile: React.FC = () => {
         {gallery.length > 0 ? (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
             {gallery.map((url, i) => (
-              <div key={i} className="shrink-0 w-40 h-28 rounded border border-black/20 overflow-hidden bg-hopon-grey">
+              <div key={url} className="relative shrink-0 w-40 h-28 rounded border border-black/20 overflow-hidden bg-hopon-grey">
                 <img src={url} alt="" className="w-full h-full object-cover" />
+                {isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextImages = (profile.images ?? profile.gallery ?? []).filter((item) => item !== url);
+                      setProfile({ ...profile, images: nextImages, gallery: nextImages });
+                    }}
+                    className="absolute right-1 top-1 h-6 w-6 border border-black bg-white text-xs"
+                    aria-label={isZh ? '删除图片' : 'Remove image'}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -260,6 +322,22 @@ export const MerchantProfile: React.FC = () => {
           <div className="h-32 rounded border-2 border-dashed border-black/20 flex items-center justify-center mb-4 text-black/50 text-sm">
             {copy.noImages}
           </div>
+        )}
+        {isEditMode && (
+          <label className="flex h-12 cursor-pointer items-center justify-center border-2 border-dashed border-black/40 bg-white font-mono text-xs uppercase text-black/70 hover:border-black">
+            {uploading ? '…' : copy.uploadImages}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              disabled={uploading}
+              onChange={(event) => {
+                void handleGalleryUpload(event.target.files);
+                event.currentTarget.value = '';
+              }}
+            />
+          </label>
         )}
       </section>
 

@@ -50,7 +50,7 @@ function getCreatorName(app: Application): string {
 }
 
 function isVerified(app: Application | undefined): boolean {
-  const v = app?.verified_at;
+  const v = app?.verified_at ?? app?.verifiedAt;
   return v != null && v !== '' && String(v).length > 0;
 }
 
@@ -64,14 +64,14 @@ function getItemStatus(item: ReviewItem): string | null {
   if (application?.status === 'PENDING') return 'pending';
   if (application?.status === 'REJECTED') return 'rejected';
   if (application?.status === 'ACCEPTED') {
-    if (draftPost) {
-      if (draftPost.status === 'SUBMITTED') return 'submitted';
-      if (draftPost.status === 'APPROVED' || draftPost.status === 'REVISION_REQUESTED') return 'pending_submit';
-    }
     if (deliverable) {
       if (deliverable.status === 'SUBMITTED') return 'submitted';
       if (deliverable.status === 'REVISION_REQUESTED') return 'pending_submit';
       if (deliverable.status === 'APPROVED') return 'approved';
+    }
+    if (draftPost) {
+      if (draftPost.status === 'SUBMITTED') return 'submitted';
+      if (draftPost.status === 'APPROVED' || draftPost.status === 'REVISION_REQUESTED') return 'pending_submit';
     }
     return 'accepted';
   }
@@ -300,7 +300,9 @@ export const MerchantReview: React.FC = () => {
     const s = getItemStatus(item);
     if (s === 'pending') return t.statusPending;
     if (s === 'rejected') return t.statusRejected;
-    if (s === 'accepted') return t.statusPendingCheckin;
+    if (s === 'accepted') {
+      return isVerified(item.application) ? t.statusDeliverablePending : t.statusPendingCheckin;
+    }
     if (s === 'pending_submit') {
       if (item.deliverable?.status === 'REVISION_REQUESTED' || item.draftPost?.status === 'REVISION_REQUESTED') {
         return t.statusNeedsRevision;
@@ -448,7 +450,13 @@ export const MerchantReview: React.FC = () => {
                 )}
 
                 {app.status === 'ACCEPTED' && !isVerified(app) && tab === 'visit_pending' && (
-                  <div className="mt-4 pt-4 border-t border-black/10">
+                  <div className="mt-4 grid gap-3 pt-4 border-t border-black/10 sm:grid-cols-2">
+                    <Link
+                      to={`/merchant/application/${app.id}/chat`}
+                      className="flex h-10 items-center justify-center border-2 border-black bg-white text-hopon-black font-mono text-xs uppercase hover:bg-hopon-grey"
+                    >
+                      {isZh ? '沟通时间' : 'Schedule Chat'}
+                    </Link>
                     <button
                       type="button"
                       onClick={() => setVerifyModalOpen(true)}
@@ -474,6 +482,12 @@ export const MerchantReview: React.FC = () => {
 
                 {item.draftPost?.status === 'SUBMITTED' && (
                   <div className="flex gap-3 mt-4 pt-4 border-t border-black/10">
+                    <Link
+                      to={`/merchant/application/${app.id}/draft-post`}
+                      className="flex-1 h-10 border-2 border-black bg-white text-hopon-black font-mono text-xs uppercase flex items-center justify-center"
+                    >
+                      {isZh ? 'AI 审稿' : 'AI Review'}
+                    </Link>
                     <button
                       type="button"
                       onClick={() => openRevision(item.draftPost!.id, true)}

@@ -113,7 +113,7 @@ function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId,
       { threshold: [0.45, 0.65, 0.85], rootMargin: '-30% 0px -42% 0px' }
     );
 
-    Object.values(refs.current).forEach((node) => {
+    Object.values(refs.current).forEach((node: HTMLDivElement | null) => {
       if (node) observer.observe(node);
     });
     return () => observer.disconnect();

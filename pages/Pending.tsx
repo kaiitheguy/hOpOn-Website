@@ -29,7 +29,7 @@ export const Pending: React.FC = () => {
             </Link>
             <button
               type="button"
-              onClick={() => navigate('/', { replace: true })}
+              onClick={() => navigate('/merchant/login', { replace: true })}
               className="w-full h-14 border-2 border-black bg-white text-hopon-black font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-grey transition-colors"
             >
               去登录

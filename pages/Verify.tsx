@@ -44,6 +44,7 @@ function CampaignCard({
   campaign: HoponRedeemCampaign;
   selected: boolean;
   onClick: () => void;
+  key?: React.Key;
 }) {
   return (
     <button
@@ -74,6 +75,7 @@ function CreatorCard({
   creator: HoponRedeemCreator;
   selected: boolean;
   onClick: () => void;
+  key?: React.Key;
 }) {
   return (
     <button

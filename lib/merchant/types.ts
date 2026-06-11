@@ -36,6 +36,18 @@ export interface Restaurant {
   [key: string]: unknown;
 }
 
+export type MerchantAccountStatus = 'approved' | 'active' | 'pending' | 'rejected' | 'unknown' | string;
+
+export interface MerchantSessionState {
+  userId: string | null;
+  email?: string | null;
+  role?: string | null;
+  status?: MerchantAccountStatus | null;
+  hasRestaurantProfile: boolean;
+  restaurant?: Restaurant | null;
+  reason?: 'no_session' | 'not_merchant' | 'pending' | 'rejected' | 'missing_profile' | 'ready' | 'unknown';
+}
+
 export interface CampaignMerchant {
   id?: string;
   restaurant_id?: string;
@@ -47,6 +59,7 @@ export interface CampaignMerchant {
 export interface Campaign {
   id: string;
   restaurant_id: string;
+  restaurantId?: string;
   title: string;
   description?: string | null;
   images?: string[] | null;
@@ -56,6 +69,19 @@ export interface Campaign {
   ends_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  type?: string | null;
+  budget?: string | null;
+  location?: string | null;
+  formattedAddress?: string | null;
+  streetAddress?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zipCode?: string | null;
+  country?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapboxId?: string | null;
+  requirements?: string[] | null;
   merchant?: CampaignMerchant | null;
   [key: string]: unknown;
 }
@@ -63,10 +89,22 @@ export interface Campaign {
 export interface Application {
   id: string;
   campaign_id: string;
+  campaignId?: string;
   creator_id: string;
+  creatorId?: string;
   status: ApplicationStatus;
   campaignStatus?: CampaignStatus;
   verified_at?: string | null;
+  verifiedAt?: string | null;
+  applied_at?: string | null;
+  appliedAt?: string | null;
+  verification_code?: string | null;
+  verificationCode?: string | null;
+  scheduleStatus?: 'not_started' | 'pending' | 'confirmed' | 'expired' | string | null;
+  scheduleDeadline?: string | null;
+  confirmedVisitTime?: string | null;
+  scheduleConfirmedAt?: string | null;
+  approvedAt?: string | null;
   campaign?: Campaign | null;
   creator?: Creator | null;
   deliverable?: Deliverable | null;
@@ -98,9 +136,15 @@ export interface Deliverable {
 export interface DraftPost {
   id: string;
   application_id: string;
+  applicationId?: string;
+  creatorId?: string | null;
+  restaurantId?: string | null;
   status: DraftPostStatus;
   link?: string | null;
   submitted_at?: string | null;
+  submittedAt?: string | null;
+  draftTitle?: string | null;
+  draftContent?: string | null;
   draftText?: string | null;
   draftImages?: string[] | null;
   feedback?: string | null;
@@ -140,6 +184,21 @@ export interface Creator {
   xhsUrl?: string | null;
   tiktokHandle?: string | null;
   tiktokUrl?: string | null;
+  followerRange?: string | null;
+  avgLikesRange?: string | null;
+  rateRange?: string | null;
+  country?: string | null;
+  cityKey?: string | null;
+  areaKey?: string | null;
+  birthDate?: string | null;
+  isOver21?: boolean | null;
+  pointsBalance?: number | null;
+  creatorLevel?: string | null;
+  invitedByCreatorId?: string | null;
+  leaderCreatorId?: string | null;
+  referralCode?: string | null;
+  maxFollowersPublicApproved?: number | null;
+  platformsPublicApproved?: string[] | null;
   [key: string]: unknown;
 }
 
@@ -166,6 +225,18 @@ export interface LocationOption {
   aliases?: string[];
 }
 
+export interface StructuredAddress {
+  formatted_address: string;
+  street_address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  mapbox_id: string;
+}
+
 export interface ResolvedLocation {
   key?: string;
   label: string;
@@ -190,3 +261,131 @@ export type NotificationType =
   | 'deliverable_approved'
   | 'deliverable_revision_requested'
   | string;
+
+export interface GrowthSnapshot {
+  id: string;
+  restaurant_id: string;
+  discovery_score?: number | null;
+  geo_score?: number | null;
+  review_score?: number | null;
+  delivery_score?: number | null;
+  creator_score?: number | null;
+  summary?: string | null;
+  insights?: Record<string, unknown> | null;
+  snapshot_at?: string | null;
+  created_at?: string | null;
+}
+
+export interface CampaignDraft {
+  id: string;
+  restaurant_id: string;
+  source?: string | null;
+  title: string;
+  goal?: string | null;
+  overview?: string | null;
+  target_audience?: string | null;
+  creator_brief?: Record<string, unknown> | null;
+  suggested_budget_min?: number | null;
+  suggested_budget_max?: number | null;
+  status?: 'draft' | 'archived' | 'published' | string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface GeneratedPage {
+  id: string;
+  restaurant_id?: string | null;
+  page_type: 'merchant' | 'discovery' | string;
+  slug: string;
+  title: string;
+  meta_description?: string | null;
+  content?: Record<string, unknown> | null;
+  status: 'draft' | 'published' | 'archived' | string;
+  published_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface SeoOpportunity {
+  id: string;
+  restaurant_id: string;
+  opportunity_type?: string | null;
+  keyword?: string | null;
+  title: string;
+  reason?: string | null;
+  estimated_impact?: string | null;
+  description?: string | null;
+  recommendation?: string | null;
+  impact?: string | null;
+  status?: 'pending' | 'completed' | 'dismissed' | string;
+  created_at?: string | null;
+}
+
+export type VisitSlot = { start: string; end?: string };
+
+export interface ApplicationMessage {
+  id: string;
+  applicationId: string;
+  senderId: string;
+  senderRole: 'creator' | 'restaurant' | 'merchant' | 'system' | string;
+  messageType: 'text' | 'system' | 'schedule_proposal' | string;
+  body: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ApplicationScheduleProposal {
+  id: string;
+  applicationId: string;
+  proposedBy: string;
+  proposedByRole: 'creator' | 'restaurant' | 'merchant' | string;
+  slots: VisitSlot[];
+  status: 'pending' | 'superseded' | 'confirmed' | 'declined' | string;
+  selectedSlot?: VisitSlot | null;
+  confirmedBy?: string | null;
+  createdAt: string;
+  confirmedAt?: string | null;
+}
+
+export interface ApplicationChatContext {
+  role: 'creator' | 'restaurant';
+  application: Application;
+  messages: ApplicationMessage[];
+  pendingProposal: ApplicationScheduleProposal | null;
+}
+
+export interface DraftPostAgentResult {
+  id?: string;
+  draftPostId?: string | null;
+  applicationId: string;
+  campaignId: string;
+  creatorId: string;
+  restaurantId: string;
+  platform: string;
+  languageFluencyScore: number;
+  overallScore: number;
+  subScores: Record<string, number>;
+  feedback: {
+    missingKeywords: string[];
+    phrasesToStrengthen: string[];
+    campaignGoalMatch: string;
+    isGeneric: boolean;
+    platformOptimization: string;
+    suggestedCta: string;
+    localDiscoveryPhrases: string[];
+  };
+  suggestedTitle: string;
+  suggestedContent: string;
+  hashtags: string[];
+  recommendedKeywords: string[];
+  rewriteOptions: {
+    fullRewrite: string;
+    titleOnly: string;
+    contentOnly: string;
+    keywordsOnly: string[];
+  };
+  reasoning: string;
+  analyzedAt: string;
+  originalTitle: string;
+  originalContent: string;
+}

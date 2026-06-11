@@ -8,6 +8,8 @@ declare global {
       VITE_SUPABASE_ANON_KEY?: string;
       EXPO_PUBLIC_SUPABASE_URL?: string;
       EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
+      VITE_MAPBOX_ACCESS_TOKEN?: string;
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?: string;
       GEMINI_API_KEY?: string;
     };
   }
@@ -50,7 +52,7 @@ function getClient(): SupabaseClient {
 /** 单例 Supabase 客户端。本地用 import.meta.env，生产用 window.__RUNTIME_CONFIG__（/config.js）。不写死 key。 */
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    return (getClient() as Record<string, unknown>)[prop as string];
+    return (getClient() as unknown as Record<string, unknown>)[prop as string];
   },
 });
 
@@ -631,7 +633,7 @@ export async function getPublishedGeneratedPages(): Promise<GeneratedPageSummary
     ? data
         .filter(isRecord)
         .map((row) => {
-          const pageType = row.page_type === 'discovery' ? 'discovery' : 'merchant';
+          const pageType: 'merchant' | 'discovery' = row.page_type === 'discovery' ? 'discovery' : 'merchant';
           const slug = asString(row.slug);
           return {
             slug,

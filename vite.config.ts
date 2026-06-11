@@ -31,6 +31,9 @@ export default defineConfig(({ mode }) => {
                     '',
                   EXPO_PUBLIC_SUPABASE_URL: devEnv.EXPO_PUBLIC_SUPABASE_URL || '',
                   EXPO_PUBLIC_SUPABASE_ANON_KEY: devEnv.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+                  VITE_MAPBOX_ACCESS_TOKEN:
+                    devEnv.VITE_MAPBOX_ACCESS_TOKEN || devEnv.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
+                  EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: devEnv.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
                   GEMINI_API_KEY: devEnv.GEMINI_API_KEY || '',
                 };
                 res.setHeader('Content-Type', 'application/javascript');
@@ -47,6 +50,8 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
         'import.meta.env.EXPO_PUBLIC_SUPABASE_URL': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_URL || ''),
         'import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''),
+        'import.meta.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN || env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || ''),
+        'import.meta.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || ''),
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },

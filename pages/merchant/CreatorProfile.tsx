@@ -96,6 +96,12 @@ export const CreatorProfile: React.FC = () => {
         type: 'invite_to_campaign',
         title: t.inviteFrom(restaurantProfile.name ?? ''),
         body: t.inviteBody(restaurantProfile.name ?? '', campaign.title),
+        data: {
+          campaign_id: campaign.id,
+          restaurant_id: userId,
+          campaign_title: campaign.title,
+          restaurant_name: restaurantProfile.name,
+        },
       });
       if (ok) {
         setToast({ msg: t.inviteSent });
