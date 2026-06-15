@@ -25,38 +25,26 @@ const steps: DemoStep[] = [
   {
     id: 'profile',
     eyebrow: '01',
-    title: 'Tell hOpOn about your business',
-    copy: 'Location, audience, products, and goals.',
+    title: 'Meet Your hOpOn Growth Agent',
+    copy: 'Your Growth Agent learns about your business, customers, and goals to uncover new opportunities for growth.',
   },
   {
     id: 'campaign',
     eyebrow: '02',
-    title: 'hOpOn creates a campaign',
-    copy: 'Offers, creator briefs, and a simple plan.',
-  },
-  {
-    id: 'creators',
-    eyebrow: '03',
-    title: 'Match local creators',
-    copy: 'Creators who already influence your neighborhood.',
-  },
-  {
-    id: 'review',
-    eyebrow: '04',
-    title: 'Review drafts',
-    copy: 'Creators visit, create content, and submit drafts.',
+    title: 'Campaigns That Keep Getting Smarter',
+    copy: 'hOpOn plans campaigns, matches creators, reviews content, and continuously optimizes performance before every post goes live.',
   },
   {
     id: 'conversion',
-    eyebrow: '05',
-    title: 'Customers visit the store',
-    copy: 'Customers come in and unlock the in-store offer.',
+    eyebrow: '03',
+    title: 'Turn Creator Content Into Trackable Visits',
+    copy: 'Customers redeem offers in seconds, creating a seamless bridge between online engagement and in-store growth.',
   },
   {
     id: 'roi',
-    eyebrow: '06',
-    title: 'Track what worked',
-    copy: 'See visits, revenue, and creator performance.',
+    eyebrow: '04',
+    title: 'Prove ROI with Offline Attribution',
+    copy: 'An interactive attribution dashboard shows which creators, campaigns, and offers actually drive growth.',
   },
 ];
 
@@ -496,9 +484,9 @@ export const InteractiveProductDemo: React.FC = () => {
     <section id="demo" className="scroll-mt-24 bg-white px-5 py-5 md:px-12 md:py-28 lg:px-16">
       <div className="mx-auto max-w-7xl">
         <div className="mb-4 max-w-3xl md:mb-12">
-          <p className="mb-3 font-mono text-xs uppercase text-black/50">Product demo</p>
+          <p className="mb-3 font-mono text-xs uppercase text-black/50">Demo mechanism</p>
           <h2 className="font-display text-3xl font-bold leading-tight text-hopon-black md:text-6xl">
-            How hOpOn Works
+            From Creator Content to Measurable Growth
           </h2>
         </div>
 
@@ -545,23 +533,23 @@ export const WhyHopon: React.FC = () => {
   const points = [
     {
       icon: UsersRound,
-      title: 'Reach Creators for Free',
-      copy: 'Stop spending hours sending DMs. hOpOn connects you with local creators nearby.',
+      title: 'The First Attribution Layer for Creator Marketing',
+      copy: 'Finally connect creator activity to real customer growth.',
     },
     {
       icon: Sparkles,
-      title: 'Reach Customers Other Platforms Miss',
-      copy: 'Reach high-intent Chinese consumers through Xiaohongshu and local creator communities.',
+      title: 'A Team of AI Agents Behind Every Campaign',
+      copy: 'From planning and creator matching to content optimization and attribution, hOpOn automates the work behind growth.',
     },
     {
       icon: MessageSquareText,
-      title: 'Grow Without Hiring a Marketing Team',
-      copy: 'hOpOn handles campaigns, creator matching, and follow-up so owners can run the business.',
+      title: 'Built Specifically for Local Businesses',
+      copy: 'Designed around in-store visits and offline customer behavior.',
     },
     {
       icon: ReceiptText,
-      title: 'Pay for Growth, Not Guesswork',
-      copy: 'See which creators brought people in. Only pay when growth happens.',
+      title: 'Every Dollar Accounted For',
+      copy: 'Know exactly what drove growth before investing another marketing dollar.',
     },
   ];
 
@@ -571,7 +559,7 @@ export const WhyHopon: React.FC = () => {
         <div>
           <p className="mb-4 font-mono text-xs uppercase text-white/50">Why hOpOn</p>
           <h2 className="font-display text-4xl font-bold leading-tight md:text-6xl">
-            Built for Busy Local Owners
+            The Growth Platform Local Businesses Have Never Had
           </h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
@@ -601,10 +589,10 @@ export const FinalCTA: React.FC = () => {
           <div>
             <p className="mb-4 font-mono text-xs uppercase text-black/50">Start growing</p>
             <h2 className="font-display text-4xl font-bold leading-tight text-hopon-black md:text-7xl">
-              Ready to Grow?
+              Ready to Measure Every Dollar of Growth?
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-7 text-black/70 md:text-lg">
-              More customers. Less marketing. No marketing team required.
+              Launch creator campaigns, track in-store visits, and prove which offers, creators, and content drive real growth.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:justify-end">

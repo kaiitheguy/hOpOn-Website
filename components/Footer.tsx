@@ -88,10 +88,10 @@ export const Footer: React.FC = () => {
         <div className="p-8 md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Promise</h4>
           <p className="font-display text-3xl font-bold leading-tight">
-            More customers, less manual marketing.
+            Creator marketing you can finally measure.
           </p>
           <p className="mt-5 text-sm leading-6 text-white/60">
-            hOpOn helps local merchants launch campaigns, bring people into the store, and know what worked.
+            hOpOn helps local merchants launch campaigns, bring people into the store, and know which creators, offers, and content drove growth.
           </p>
         </div>
       </div>

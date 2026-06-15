@@ -239,13 +239,13 @@ export const Hero: React.FC = () => {
         <div className={`fade-up-enter ${isVisible ? 'fade-up-active' : ''}`}>
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 font-mono text-xs uppercase text-black/60">
             <TrendingUp className="h-4 w-4 text-hopon-red" />
-            AI growth platform for local businesses
+            Agentic Growth Platform for Local Businesses
           </p>
           <h1 className="font-display text-4xl font-bold leading-[0.98] text-hopon-black md:text-7xl lg:text-8xl">
-            More Customers. Less Marketing.
+            Stop Paying for Marketing You Can't Measure
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-black/70 md:text-xl md:leading-8">
-            Get discovered by local creators, reach customers other platforms miss, and track what actually drives growth.
+            Reach high-intent local customers through creators, unlock audiences other platforms miss, and measure every visit, conversion, and dollar of growth.
           </p>
           <div className="mt-6 lg:hidden">
             <MobileHeroVisual />
@@ -260,7 +260,7 @@ export const Hero: React.FC = () => {
             </Link>
             <AppStoreBadge />
           </div>
-          <p className="mt-4 font-mono text-xs uppercase text-black/50">No marketing team required.</p>
+          <p className="mt-4 font-mono text-xs uppercase text-black/50">Every visit, conversion, and dollar accounted for.</p>
         </div>
 
         <div className={`relative hidden fade-up-enter lg:block ${isVisible ? 'fade-up-active stagger-2' : ''}`}>

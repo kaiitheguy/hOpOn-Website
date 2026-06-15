@@ -32,7 +32,7 @@ export const NavBar: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-display text-xl font-bold leading-none md:text-2xl">hOpOn</span>
-            <span className="mt-0.5 font-mono text-[10px] uppercase leading-none text-black/60">Local growth platform</span>
+            <span className="mt-0.5 font-mono text-[10px] uppercase leading-none text-black/60">Agentic growth platform</span>
           </div>
         </Link>
 
