@@ -1,13 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  ArrowRight,
+  BarChart3,
+  Building2,
   Check,
   CheckCircle2,
   MessageSquareText,
   Gift,
   MousePointerClick,
   ReceiptText,
+  Rocket,
   Sparkles,
+  Sprout,
   UsersRound,
+  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
@@ -19,6 +25,28 @@ type DemoStep = {
   eyebrow: string;
   title: string;
   copy: string;
+};
+
+type GrowthCase = {
+  icon: string;
+  businessType: string;
+  goal: string;
+  campaign: string;
+  description: string;
+  result: string;
+  resultLabel: string;
+  status: string;
+  kpis: { value: string; label: string }[];
+  insight: string;
+};
+
+type SubscriptionTier = {
+  name: string;
+  icon: LucideIcon;
+  badge: string;
+  copy: string;
+  bullets: string[];
+  featured?: boolean;
 };
 
 const steps: DemoStep[] = [
@@ -54,6 +82,114 @@ const creators = [
   { name: 'Noah Park', handle: 'noahvisits', audience: 'East Village food crowd', match: '88', avatar: '/assets/creator-noah.png' },
 ];
 
+const growthCases: GrowthCase[] = [
+  {
+    icon: '🍓',
+    businessType: 'Dessert Shop',
+    goal: 'Launch a Seasonal Product',
+    campaign: 'Spring Matcha Collection',
+    description:
+      'Drive awareness for a limited-time menu item and understand which creators bring customers through the door.',
+    result: '+38%',
+    resultLabel: 'ROI',
+    status: 'ROI Positive',
+    kpis: [
+      { value: '42', label: 'Store Visits' },
+      { value: '27', label: 'Offer Redemptions' },
+      { value: '+38%', label: 'ROI' },
+    ],
+    insight: 'Two local dessert creators generated over 70% of campaign visits.',
+  },
+  {
+    icon: '🍽️',
+    businessType: 'Bistro',
+    goal: 'Fill More Lunch Tables',
+    campaign: 'Weekday Lunch Menu Campaign',
+    description:
+      'Bring in more customers during lunch hours and identify which creator audiences are most likely to become repeat guests.',
+    result: '+24%',
+    resultLabel: 'Lunch Revenue',
+    status: 'Campaign Complete',
+    kpis: [
+      { value: '31', label: 'New Customers' },
+      { value: '22', label: 'Redemptions' },
+      { value: '+24%', label: 'Lunch Revenue' },
+    ],
+    insight: 'Nearby workday creators drove the strongest repeat-guest signal for lunch service.',
+  },
+  {
+    icon: '💆',
+    businessType: 'Wellness Studio',
+    goal: 'Generate More Bookings',
+    campaign: 'Creator Experience Campaign',
+    description:
+      'Turn creator recommendations into appointments while tracking what drives actual client conversions.',
+    result: '19',
+    resultLabel: 'New Appointments',
+    status: 'ROI Positive',
+    kpis: [
+      { value: '19', label: 'New Appointments' },
+      { value: '14', label: 'First-Time Clients' },
+      { value: '+22%', label: 'Monthly Growth' },
+    ],
+    insight: 'Creator posts with a direct booking CTA converted first-time clients fastest.',
+  },
+  {
+    icon: '🍸',
+    businessType: 'Cocktail Bar',
+    goal: 'Fill an Event',
+    campaign: 'Summer Guest Bartender Night',
+    description:
+      'Promote a special event through local creators and measure attendance driven by each campaign.',
+    result: '58',
+    resultLabel: 'Event Attendees',
+    status: 'Campaign Complete',
+    kpis: [
+      { value: '58', label: 'Event Attendees' },
+      { value: '36', label: 'Redemptions' },
+      { value: '+41%', label: 'Event Revenue' },
+    ],
+    insight: 'One neighborhood nightlife creator accounted for 44% of tracked event redemptions.',
+  },
+];
+
+const subscriptionTiers: SubscriptionTier[] = [
+  {
+    name: 'Starter',
+    icon: Sprout,
+    badge: 'Start small',
+    copy: 'Perfect for businesses exploring creator marketing for the first time.',
+    bullets: [
+      'Launch your first campaigns',
+      'Discover local creators',
+      'Learn what drives customer interest',
+    ],
+  },
+  {
+    name: 'Growth',
+    icon: Rocket,
+    badge: 'Repeatable channel',
+    copy: 'For businesses ready to turn creator marketing into a repeatable growth channel.',
+    bullets: [
+      'AI-powered campaign management',
+      'Creator matching and content optimization',
+      'Performance tracking and campaign insights',
+    ],
+    featured: true,
+  },
+  {
+    name: 'Pro',
+    icon: Building2,
+    badge: 'Scale with clarity',
+    copy: 'Built for businesses focused on measurable growth and long-term scale.',
+    bullets: [
+      'Advanced attribution and ROI reporting',
+      'Multi-location campaign management',
+      'Dedicated growth insights and optimization',
+    ],
+  },
+];
+
 function AnimatedSection({
   id,
   children,
@@ -65,7 +201,7 @@ function AnimatedSection({
 }) {
   const [ref, isVisible] = useIntersectionObserver({ threshold: 0.12, rootMargin: '0px 0px -70px 0px' });
   return (
-    <section id={id} className={`relative overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
+    <section id={id} className={`relative scroll-mt-24 overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
       <div
         ref={ref}
         className={`mx-auto max-w-7xl transition-all duration-700 ease-out ${
@@ -529,6 +665,99 @@ export const InteractiveProductDemo: React.FC = () => {
   );
 };
 
+export const GrowthProofSection: React.FC = () => {
+  return (
+    <AnimatedSection id="growth-proof" className="bg-[#F7F2E8]">
+      <div className="mb-10 grid gap-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-end">
+        <div>
+          <p className="mb-3 font-mono text-xs uppercase text-hopon-red">Proof snapshots</p>
+          <h2 className="font-display text-4xl font-bold leading-tight text-hopon-black md:text-6xl">
+            Real Businesses. Real Growth.
+          </h2>
+        </div>
+        <p className="max-w-2xl text-base leading-7 text-black/70 md:justify-self-end md:text-lg">
+          Different businesses have different goals. hOpOn helps connect creator marketing to measurable growth.
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {growthCases.map((item) => (
+          <article
+            key={`${item.businessType}-${item.campaign}`}
+            tabIndex={0}
+            className="group relative flex min-h-[430px] flex-col overflow-hidden rounded-3xl border border-black/10 bg-white p-5 shadow-[0_18px_55px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-hopon-red/30 hover:shadow-[0_26px_76px_rgba(0,0,0,0.12)] focus:outline-none focus:ring-2 focus:ring-hopon-red/40 md:p-6"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F7F2E8] text-2xl">
+                  {item.icon}
+                </span>
+                <div className="min-w-0">
+                  <p className="font-display text-xl font-bold leading-tight text-hopon-black">{item.businessType}</p>
+                  <p className="mt-1 text-sm font-medium leading-5 text-black/55">{item.goal}</p>
+                </div>
+              </div>
+              <span className="shrink-0 rounded-full border border-[#2F7D5B]/20 bg-[#EAF4EF] px-3 py-1 font-mono text-[10px] uppercase text-[#2F7D5B]">
+                {item.status}
+              </span>
+            </div>
+
+            <div className="mt-6 border-y border-black/10 py-5">
+              <p className="font-mono text-[10px] uppercase text-black/45">Campaign</p>
+              <h3 className="mt-2 font-display text-2xl font-bold leading-tight text-hopon-black md:text-3xl">
+                {item.campaign}
+              </h3>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-black/62">{item.description}</p>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-[0.72fr_1.28fr] md:items-end">
+              <div>
+                <p className="font-mono text-[10px] uppercase text-black/45">Measured result</p>
+                <div className="mt-2 flex items-end gap-2">
+                  <span className="font-display text-5xl font-bold leading-none text-hopon-black md:text-6xl">
+                    {item.result}
+                  </span>
+                  <span className="pb-1 font-mono text-xs uppercase leading-4 text-hopon-red">{item.resultLabel}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 border border-black/10 bg-[#FAF7F1]">
+                {item.kpis.map((kpi, index) => (
+                  <div
+                    key={`${item.businessType}-${kpi.label}`}
+                    className={`min-w-0 p-3 ${index > 0 ? 'border-l border-black/10' : ''}`}
+                  >
+                    <p className="font-display text-xl font-bold leading-tight text-hopon-black">{kpi.value}</p>
+                    <p className="mt-1 text-[11px] font-medium leading-4 text-black/55">{kpi.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 flex-1 rounded-2xl border border-hopon-red/15 bg-[#FFF5F5] p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 shrink-0 text-hopon-red" />
+                <p className="font-mono text-[10px] uppercase text-hopon-red">AI attribution insight</p>
+              </div>
+              <p className="text-sm leading-6 text-black/72">{item.insight}</p>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 text-black/48">
+              <div className="inline-flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 shrink-0 text-hopon-red" />
+                <span className="font-mono text-[10px] uppercase">Measured by hOpOn Attribution</span>
+              </div>
+              <div className="hidden h-1.5 w-24 overflow-hidden rounded-full bg-black/10 sm:block">
+                <div className="h-full w-2/3 rounded-full bg-hopon-red transition-all duration-300 group-hover:w-full" />
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </AnimatedSection>
+  );
+};
+
 export const WhyHopon: React.FC = () => {
   const points = [
     {
@@ -576,6 +805,98 @@ export const WhyHopon: React.FC = () => {
             );
           })}
         </div>
+      </div>
+    </AnimatedSection>
+  );
+};
+
+export const FlexibleGrowthSection: React.FC = () => {
+  const [activeTierName, setActiveTierName] = useState<string | null>(null);
+
+  return (
+    <AnimatedSection id="flexible-growth" className="bg-white">
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="mb-3 font-mono text-xs uppercase text-hopon-red">Platform subscription</p>
+        <h2 className="font-display text-4xl font-bold leading-tight text-hopon-black md:text-6xl">
+          Flexible Growth, Your Way
+        </h2>
+        <p className="mt-5 text-base leading-7 text-black/70 md:text-lg">
+          Whether you're running your first creator campaign or scaling across multiple locations, hOpOn grows with your
+          business.
+        </p>
+      </div>
+
+      <div className="mt-12 grid gap-4 lg:grid-cols-3">
+        {subscriptionTiers.map((tier) => {
+          const Icon = tier.icon;
+          const isActive = activeTierName === tier.name;
+          return (
+            <article
+              key={tier.name}
+              onMouseEnter={() => setActiveTierName(tier.name)}
+              onMouseLeave={() => setActiveTierName(null)}
+              onFocus={() => setActiveTierName(tier.name)}
+              onBlur={() => setActiveTierName(null)}
+              className={`relative flex min-h-[390px] flex-col rounded-3xl border p-5 transition-all duration-300 md:p-6 ${
+                isActive
+                  ? 'border-hopon-red/30 bg-gradient-to-br from-white via-[#FFF5F5] to-[#F7F2E8] shadow-[0_24px_75px_rgba(255,42,42,0.13)] lg:-translate-y-2'
+                  : 'border-black/10 bg-white shadow-[0_16px_52px_rgba(0,0,0,0.07)]'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                    isActive ? 'bg-hopon-red text-white' : 'bg-[#F7F2E8] text-hopon-black'
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <span
+                  className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase ${
+                    isActive
+                      ? 'border-hopon-red/25 bg-white text-hopon-red'
+                      : 'border-black/10 bg-[#FAF7F1] text-black/50'
+                  }`}
+                >
+                  {tier.badge}
+                </span>
+              </div>
+
+              <h3 className="mt-8 font-display text-3xl font-bold leading-tight text-hopon-black">{tier.name}</h3>
+              <p className="mt-3 min-h-[72px] text-sm leading-6 text-black/64">{tier.copy}</p>
+
+              <div className="mt-6 space-y-3">
+                {tier.bullets.map((bullet) => (
+                  <div key={bullet} className="flex items-start gap-2.5 text-sm leading-5 text-black/72">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2F7D5B]" />
+                    <span>{bullet}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-auto pt-8">
+                <Link
+                  to="/merchant/signup"
+                  className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 font-display text-sm font-bold uppercase transition-colors ${
+                    isActive
+                      ? 'border-hopon-black bg-hopon-black text-white hover:bg-hopon-red'
+                      : 'border-black/15 bg-white text-hopon-black hover:border-hopon-black hover:bg-[#F7F2E8]'
+                  }`}
+                >
+                  Join the Waitlist
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-black/10 bg-[#FAF7F1] p-5 text-center text-sm leading-6 text-black/64 shadow-[0_14px_45px_rgba(0,0,0,0.06)]">
+        <p>
+          Your subscription covers the hOpOn platform, AI agents, campaign tools, creator workflow, and attribution
+          dashboard.
+        </p>
       </div>
     </AnimatedSection>
   );

@@ -4,6 +4,12 @@ import { ArrowRight } from 'lucide-react';
 
 export const NavBar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
+  const navLinks = [
+    { href: '/#demo', label: 'Demo' },
+    { href: '/#growth-proof', label: 'Results' },
+    { href: '/#why', label: 'Why hOpOn' },
+    { href: '/#flexible-growth', label: 'Plans' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,13 +42,14 @@ export const NavBar: React.FC = () => {
           </div>
         </Link>
 
-        <div className="flex items-center gap-4 md:gap-7">
-          <a href="/#demo" className="hidden font-display text-sm font-bold uppercase hover:underline md:block">
-            Demo
-          </a>
-          <a href="/#why" className="hidden font-display text-sm font-bold uppercase hover:underline md:block">
-            Why hOpOn
-          </a>
+        <div className="flex items-center gap-3 md:gap-5 lg:gap-7">
+          <div className="hidden items-center gap-3 md:flex lg:gap-5">
+            {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="font-display text-xs font-bold uppercase hover:underline lg:text-sm">
+                {link.label}
+              </a>
+            ))}
+          </div>
           <Link
             to="/merchant/signup"
             className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-xs font-bold uppercase text-white transition-colors hover:bg-hopon-red md:px-5"
