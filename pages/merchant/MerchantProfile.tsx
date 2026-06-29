@@ -53,7 +53,7 @@ function getCopy(isZh: boolean) {
 }
 
 export const MerchantProfile: React.FC = () => {
-  const { isZh, setLocale } = useMerchantLocale();
+  const { isZh } = useMerchantLocale();
   const copy = getCopy(isZh);
   const [profile, setProfile] = useState<Restaurant | null>(null);
   const [originalProfile, setOriginalProfile] = useState<Restaurant | null>(null);
@@ -448,7 +448,6 @@ export const MerchantProfile: React.FC = () => {
           setIsEditMode(true);
           setSettingsOpen(false);
         }}
-        onToggleLanguage={() => setLocale(isZh ? 'en' : 'zh')}
         onLogout={handleLogout}
         onDeleteAccount={handleDeleteAccount}
         isZh={isZh}

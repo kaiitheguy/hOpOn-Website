@@ -11,6 +11,8 @@ import { Pending } from './pages/Pending';
 import { Rejected } from './pages/Rejected';
 import { MerchantAuthGate } from './components/merchant/MerchantAuthGate';
 import { MerchantLayout } from './components/merchant/MerchantLayout';
+import { AdminAuthGate } from './components/admin/AdminAuthGate';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { MerchantLogin } from './pages/merchant/MerchantLogin';
 import { MerchantSignup } from './pages/merchant/MerchantSignup';
 import { MerchantHome } from './pages/merchant/MerchantHome';
@@ -25,6 +27,12 @@ import { MerchantNotifications } from './pages/merchant/MerchantNotifications';
 import { CreatorProfile } from './pages/merchant/CreatorProfile';
 import { ApplicationChat } from './pages/merchant/ApplicationChat';
 import { DraftPostReview } from './pages/merchant/DraftPostReview';
+import { AdminLogin } from './pages/admin/AdminLogin';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminSourcing } from './pages/admin/AdminSourcing';
+import { AdminSourcingDetail } from './pages/admin/AdminSourcingDetail';
+import { AdminGrowthLeads } from './pages/admin/AdminGrowthLeads';
+import { CreatorInvite } from './pages/creator/CreatorInvite';
 import { GeoMerchantPage } from './components/GeoMerchantPage';
 import { GeoDiscoveryPage } from './components/GeoDiscoveryPage';
 import { GeoDirectoryPage } from './components/GeoDirectoryPage';
@@ -49,6 +57,23 @@ root.render(
         <Route path="/discover" element={<GeoDirectoryPage />} />
         <Route path="/merchant/:slug" element={<GeoMerchantPage />} />
         <Route path="/discover/:slug" element={<GeoDiscoveryPage />} />
+        <Route path="/creator/invite/:token" element={<CreatorInvite />} />
+
+        {/* Admin operations */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminAuthGate>
+              <AdminLayout />
+            </AdminAuthGate>
+          }
+        >
+          <Route index element={<AdminDashboard />} />
+          <Route path="sourcing" element={<AdminSourcing />} />
+          <Route path="sourcing/:id" element={<AdminSourcingDetail />} />
+          <Route path="leads" element={<AdminGrowthLeads />} />
+        </Route>
 
         {/* Merchant (restaurant) app */}
         <Route path="/merchant" element={<MerchantLocaleProvider><Outlet /></MerchantLocaleProvider>}>

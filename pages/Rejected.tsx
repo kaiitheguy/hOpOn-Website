@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BrandHeader } from '../components/BrandHeader';
 import { supabase } from '../lib/supabaseClient';
+import { BrandBackground, BrandStatusCard, brandPrimaryButtonClass, brandSecondaryButtonClass } from '../components/BrandChrome';
 
 export const Rejected: React.FC = () => {
   useEffect(() => {
-    document.title = '审核未通过 | hOpOn';
+    document.title = 'Application Not Approved | hOpOn';
   }, []);
 
   const handleLogout = async () => {
@@ -14,32 +14,29 @@ export const Rejected: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <BrandHeader />
-      <main className="pt-24 pb-16 px-4 md:px-8 flex justify-center">
-        <div className="max-w-md w-full bg-white border-2 border-black p-8 text-center">
-          <p className="font-display font-bold text-xl text-hopon-black mb-2">申请暂未通过</p>
-          <p className="text-sm text-black/60 mb-4">Application not approved</p>
-          <p className="text-sm text-black/80 mb-8">
-            你的商家申请暂时未通过审核。如需更新资料，请联系我们或使用其他账号重新申请。
+    <BrandBackground>
+      <main className="flex min-h-screen items-center justify-center px-4 py-10">
+        <BrandStatusCard title="Application not approved" subtitle="Merchant review">
+          <p className="text-sm leading-6 text-black/65">
+            Your merchant application was not approved. Contact hOpOn if you need to update your business information or submit a new application.
           </p>
-          <div className="space-y-4">
+          <div className="mt-8 space-y-3">
             <Link
               to="/"
-              className="flex h-14 w-full items-center justify-center border-2 border-black bg-hopon-black text-sm font-bold uppercase tracking-wider text-white transition-colors hover:bg-hopon-red"
+              className={`${brandPrimaryButtonClass} w-full`}
             >
-              返回主站
+              Back to homepage
             </Link>
             <button
               type="button"
               onClick={handleLogout}
-              className="h-14 w-full border-2 border-black bg-white text-sm font-bold uppercase tracking-wider text-hopon-black transition-colors hover:bg-hopon-grey"
+              className={`${brandSecondaryButtonClass} w-full`}
             >
-              退出登录
+              Sign out
             </button>
           </div>
-        </div>
+        </BrandStatusCard>
       </main>
-    </div>
+    </BrandBackground>
   );
 };

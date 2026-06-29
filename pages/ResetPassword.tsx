@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
-import { BrandHeader } from '../components/BrandHeader';
+import {
+  BrandBackground,
+  BrandStatusCard,
+  FieldLabel,
+  brandInputClass,
+  brandPrimaryButtonClass,
+} from '../components/BrandChrome';
 
 const MIN_LENGTH = 8;
 
@@ -22,12 +28,12 @@ export const ResetPassword: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < MIN_LENGTH) {
-      setErrorMessage(`密码至少 ${MIN_LENGTH} 位`);
+      setErrorMessage(`Password must be at least ${MIN_LENGTH} characters.`);
       setStatus('error');
       return;
     }
     if (password !== confirm) {
-      setErrorMessage('两次输入的密码不一致');
+      setErrorMessage('Passwords do not match.');
       setStatus('error');
       return;
     }
@@ -45,94 +51,78 @@ export const ResetPassword: React.FC = () => {
 
   if (hasSession === null) {
     return (
-      <div className="min-h-screen bg-white">
-        <BrandHeader />
-        <main className="pt-24 pb-16 px-4 md:px-8 flex justify-center">
-          <div className="max-w-md w-full bg-white border-2 border-black p-8 text-center">
-            <p className="font-display font-bold text-hopon-black">加载中…</p>
-          </div>
+      <BrandBackground>
+        <main className="flex min-h-screen items-center justify-center px-4 py-10">
+          <BrandStatusCard title="Loading…" subtitle="Password reset" />
         </main>
-      </div>
+      </BrandBackground>
     );
   }
 
   if (!hasSession) {
     return (
-      <div className="min-h-screen bg-white">
-        <BrandHeader />
-        <main className="pt-24 pb-16 px-4 md:px-8 flex justify-center">
-          <div className="max-w-md w-full bg-white border-2 border-black p-8">
-            <p className="font-display font-bold text-hopon-black mb-2">链接已失效</p>
-            <p className="text-sm text-black/60 mb-2">Link expired</p>
-            <p className="text-sm text-black/80 mb-6">请重新在登录页申请「忘记密码」并点击邮件中的链接。</p>
+      <BrandBackground>
+        <main className="flex min-h-screen items-center justify-center px-4 py-10">
+          <BrandStatusCard title="Link expired" subtitle="Password reset">
+            <p className="text-sm leading-6 text-black/65">Please request another password reset email from the login page.</p>
             <button
               type="button"
               onClick={() => navigate('/', { replace: true })}
-              className="w-full h-14 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors"
+              className={`${brandPrimaryButtonClass} mt-8 w-full`}
             >
-              返回首页
+              Back to homepage
             </button>
-          </div>
+          </BrandStatusCard>
         </main>
-      </div>
+      </BrandBackground>
     );
   }
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-white">
-        <BrandHeader />
-        <main className="pt-24 pb-16 px-4 md:px-8 flex justify-center">
-          <div className="max-w-md w-full bg-white border-2 border-black p-8">
-            <p className="font-display font-bold text-green-700 mb-2">密码已更新</p>
-            <p className="text-sm text-black/60 mb-6">Password updated. You can sign in with your new password.</p>
+      <BrandBackground>
+        <main className="flex min-h-screen items-center justify-center px-4 py-10">
+          <BrandStatusCard title="Password updated" subtitle="You can sign in with your new password.">
             <button
               type="button"
               onClick={() => navigate('/', { replace: true })}
-              className="w-full h-14 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors"
+              className={`${brandPrimaryButtonClass} w-full`}
             >
-              去登录
+              Continue
             </button>
-          </div>
+          </BrandStatusCard>
         </main>
-      </div>
+      </BrandBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <BrandHeader />
-      <main className="pt-24 pb-16 px-4 md:px-8 flex justify-center">
-        <div className="max-w-md w-full bg-white border-2 border-black p-8">
-          <h1 className="font-display font-bold text-xl uppercase tracking-tight text-hopon-black mb-2">设置新密码</h1>
-          <p className="text-sm text-black/60 mb-6">Set new password</p>
+    <BrandBackground>
+      <main className="flex min-h-screen items-center justify-center px-4 py-10">
+        <BrandStatusCard title="Set new password" subtitle="Choose a secure password for your hOpOn account.">
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="password" className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">
-                新密码（至少 {MIN_LENGTH} 位）
-              </label>
+              <FieldLabel htmlFor="password">New password, min {MIN_LENGTH} characters</FieldLabel>
               <input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-14 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 disabled={status === 'submitting'}
               />
             </div>
             <div>
-              <label htmlFor="confirm" className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">
-                再次输入
-              </label>
+              <FieldLabel htmlFor="confirm">Confirm password</FieldLabel>
               <input
                 id="confirm"
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full h-14 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 disabled={status === 'submitting'}
@@ -144,13 +134,13 @@ export const ResetPassword: React.FC = () => {
             <button
               type="submit"
               disabled={status === 'submitting'}
-              className="w-full h-14 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors disabled:opacity-50"
+              className={`${brandPrimaryButtonClass} w-full`}
             >
-              {status === 'submitting' ? '提交中…' : '确认'}
+              {status === 'submitting' ? 'Submitting…' : 'Confirm'}
             </button>
           </form>
-        </div>
+        </BrandStatusCard>
       </main>
-    </div>
+    </BrandBackground>
   );
 };

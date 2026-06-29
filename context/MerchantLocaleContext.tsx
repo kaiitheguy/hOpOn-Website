@@ -323,18 +323,17 @@ const STORAGE_KEY = 'merchant_locale';
 
 export function MerchantLocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<MerchantLocale>(() => {
-    if (typeof window === 'undefined') return 'zh';
+    if (typeof window === 'undefined') return 'en';
     try {
-      const s = localStorage.getItem(STORAGE_KEY);
-      if (s === 'en' || s === 'zh') return s;
+      localStorage.setItem(STORAGE_KEY, 'en');
     } catch {}
-    return 'zh';
+    return 'en';
   });
 
-  const setLocale = useCallback((l: MerchantLocale) => {
-    setLocaleState(l);
+  const setLocale = useCallback((_l: MerchantLocale) => {
+    setLocaleState('en');
     try {
-      localStorage.setItem(STORAGE_KEY, l);
+      localStorage.setItem(STORAGE_KEY, 'en');
     } catch {}
   }, []);
 

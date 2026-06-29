@@ -86,6 +86,31 @@ export interface Campaign {
   [key: string]: unknown;
 }
 
+export interface CampaignSourcingCandidate {
+  id: string;
+  platform: string;
+  handle?: string | null;
+  profileUrl?: string | null;
+  displayName?: string | null;
+  followers?: number | null;
+  score?: number | null;
+  fitReasons: string[];
+  merchantStatus?: string | null;
+  outreachStatus?: string | null;
+}
+
+export interface CampaignSourcingRequest {
+  id: string;
+  campaignId: string;
+  status: string;
+  searchBrief?: string | null;
+  generatedTags: string[];
+  platforms: string[];
+  neededCreatorCount: number;
+  lastRunAt?: string | null;
+  candidates: CampaignSourcingCandidate[];
+}
+
 export interface Application {
   id: string;
   campaign_id: string;

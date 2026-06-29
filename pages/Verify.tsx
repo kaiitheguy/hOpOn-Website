@@ -51,8 +51,8 @@ function CampaignCard({
     <button
       type="button"
       onClick={onClick}
-      className={`w-full border p-4 text-left transition-colors ${
-        selected ? 'border-hopon-red bg-[#FFF5F5]' : 'border-black/10 bg-white hover:border-black'
+      className={`w-full rounded-2xl border p-4 text-left transition-colors ${
+        selected ? 'border-hopon-red bg-[#FFF5F5]' : 'border-black/10 bg-white hover:border-black/35'
       }`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -60,7 +60,7 @@ function CampaignCard({
           <h2 className="font-display text-xl font-bold leading-tight text-hopon-black">{campaign.title}</h2>
           <p className="mt-1 text-sm text-black/60">{campaign.merchantName}</p>
         </div>
-        <span className="shrink-0 bg-hopon-grey px-2 py-1 font-mono text-[11px] uppercase text-black/60">
+        <span className="shrink-0 rounded-full bg-hopon-grey px-2.5 py-1 font-mono text-[11px] uppercase text-black/60">
           5% off
         </span>
       </div>
@@ -85,8 +85,8 @@ function CreatorCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-3 border p-4 text-left transition-colors ${
-        selected ? 'border-hopon-red bg-[#FFF5F5]' : 'border-black/10 bg-white hover:border-black'
+      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition-colors ${
+        selected ? 'border-hopon-red bg-[#FFF5F5]' : 'border-black/10 bg-white hover:border-black/35'
       }`}
     >
       {avatarUrl ? (
@@ -185,9 +185,18 @@ export const Verify: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F7F2E8]">
+      <style>{`
+        .verify-bg {
+          background:
+            radial-gradient(circle at 16% 10%, rgba(255,42,42,0.11), transparent 28rem),
+            radial-gradient(circle at 86% 4%, rgba(13,148,136,0.09), transparent 24rem),
+            linear-gradient(180deg, #fbf6ec 0%, #f7f2e8 56%, #f1e4d5 100%);
+        }
+      `}</style>
       <BrandHeader />
 
-      <main className="mx-auto max-w-2xl px-4 pb-10 pt-28 md:px-6">
+      <main className="verify-bg mx-auto min-h-screen max-w-none px-4 pb-10 pt-28 md:px-6">
+        <div className="mx-auto max-w-2xl">
         <div className="mb-5">
           <p className="font-mono text-xs uppercase text-black/50">In-store offer</p>
           <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-hopon-black">
@@ -198,7 +207,7 @@ export const Verify: React.FC = () => {
           </p>
         </div>
 
-        <div className="border border-black bg-white p-4 shadow-[8px_8px_0_0_#050505] md:p-5">
+        <div className="rounded-[30px] border border-black/10 bg-white/88 p-4 shadow-[0_24px_80px_rgba(20,14,8,0.08)] backdrop-blur md:p-5">
           <ProgressDots step={step} />
 
           {loading ? (
@@ -226,7 +235,7 @@ export const Verify: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="border border-black/10 bg-hopon-grey p-5">
+                <div className="rounded-2xl border border-black/10 bg-hopon-grey p-5">
                   <p className="font-display text-xl font-bold text-hopon-black">No open public offers right now.</p>
                   <p className="mt-2 text-sm leading-6 text-black/60">
                     Please ask staff if there is another Hopon campaign available today.
@@ -280,7 +289,7 @@ export const Verify: React.FC = () => {
               </button>
 
               {!redeemReady ? (
-                <div className="border border-[#2F7D5B] bg-[#EAF4EF] p-5 text-[#2F7D5B]">
+                <div className="rounded-3xl border border-[#2F7D5B]/25 bg-[#EAF4EF] p-5 text-[#2F7D5B]">
                   <CheckCircle2 className="h-9 w-9" />
                   <h2 className="mt-4 font-display text-3xl font-bold leading-tight">You unlocked 5% off today.</h2>
                   <p className="mt-3 text-sm leading-6">
@@ -289,14 +298,14 @@ export const Verify: React.FC = () => {
                   <button
                     type="button"
                     onClick={showToStaff}
-                    className="mt-5 flex min-h-[54px] w-full items-center justify-center gap-2 bg-hopon-black px-5 py-4 font-display text-sm font-bold uppercase text-white"
+                    className="mt-5 flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 py-4 font-display text-sm font-bold uppercase text-white transition hover:bg-hopon-red"
                   >
                     Show to Staff
                     <ReceiptText className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
-                <div className="border border-black bg-white p-5">
+                <div className="rounded-3xl border border-black/10 bg-white p-5">
                   <p className="font-mono text-xs uppercase text-black/50">Hopon Offer</p>
                   <h2 className="mt-2 font-display text-3xl font-bold text-hopon-black">Ready to redeem</h2>
                   <div className="mt-6 space-y-3">
@@ -321,6 +330,7 @@ export const Verify: React.FC = () => {
               )}
             </section>
           ) : null}
+        </div>
         </div>
       </main>
     </div>

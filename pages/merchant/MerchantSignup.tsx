@@ -6,13 +6,19 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
-import { useMerchantLocale } from '../../context/MerchantLocaleContext';
+import {
+  BrandAuthLayout,
+  FieldLabel,
+  brandInputClass,
+  brandPrimaryButtonClass,
+  brandSecondaryButtonClass,
+  brandTextareaClass,
+} from '../../components/BrandChrome';
 
 type Step = 0 | 1 | 2;
 
 export const MerchantSignup: React.FC = () => {
   const navigate = useNavigate();
-  const { isZh } = useMerchantLocale();
   const [step, setStep] = useState<Step>(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,43 +35,43 @@ export const MerchantSignup: React.FC = () => {
   const [error, setError] = useState('');
 
   const copy = {
-    title: isZh ? '商家注册' : 'Merchant Sign Up',
-    subtitle: isZh ? 'Merchant registration' : 'Create your merchant account',
-    hasAccount: isZh ? '已有账户？' : 'Already have an account?',
-    login: isZh ? '登录' : 'Login',
-    email: isZh ? '邮箱' : 'Email',
+    title: 'Merchant Sign Up',
+    subtitle: 'Create your merchant account',
+    hasAccount: 'Already have an account?',
+    login: 'Login',
+    email: 'Email',
     emailPlaceholder: 'you@example.com',
-    password: isZh ? '密码' : 'Password',
-    passwordPlaceholder: isZh ? '至少 6 位' : 'Min 6 characters',
-    confirmPassword: isZh ? '确认密码' : 'Confirm Password',
-    next: isZh ? '下一步' : 'Next',
-    back: isZh ? '上一步' : 'Back',
-    signup: isZh ? '注册' : 'Sign Up',
-    step1Title: isZh ? '基本信息' : 'Basic info',
-    step2Title: isZh ? '选填资料与联系' : 'Contact & optional',
-    merchantName: isZh ? '商家名称' : 'Merchant Name',
-    merchantNamePlaceholder: isZh ? '店铺名称' : 'Store name',
-    locationLabel: isZh ? '位置' : 'Location',
-    locationPlaceholder: isZh ? '例如：SoHo、Flushing、Midtown' : 'e.g. SoHo, Flushing, Midtown',
-    categoryLabel: isZh ? '类型' : 'Category',
-    categoryPlaceholder: isZh ? '商家类型/风格' : 'Merchant type/style',
-    contact: isZh ? '联系方式' : 'Contact',
-    wechat: isZh ? '微信' : 'WeChat',
-    phone: isZh ? '电话' : 'Phone',
-    contactPlaceholder: isZh ? 'WeChat ID 或手机号' : 'WeChat ID or phone number',
-    descriptionLabel: isZh ? '简介' : 'Description',
-    descriptionPlaceholder: isZh ? '店铺简介（选填）' : 'Brief description (optional)',
-    cuisineTagsLabel: isZh ? '菜系标签' : 'Cuisine tags',
-    cuisineTagsPlaceholder: isZh ? '例如：川菜、点心、辣（逗号分隔）' : 'e.g. Sichuan, Dim Sum (comma separated)',
-    notesLabel: isZh ? '备注' : 'Notes',
-    notesPlaceholder: isZh ? '选填' : 'Optional',
-    errorFillAll: isZh ? '请填写所有必填项' : 'Please fill in all required fields',
-    errorPasswordLength: isZh ? '密码至少 6 位' : 'Password must be at least 6 characters',
-    errorPasswordMatch: isZh ? '两次密码不一致' : 'Passwords do not match',
-    errorContactRequired: isZh ? '请填写微信或手机号' : 'Please enter WeChat ID or phone number',
-    errorSignupFailed: isZh ? '注册失败' : 'Signup failed',
-    errorAccountExists: isZh ? '此邮箱已被注册，请登录或使用其他邮箱' : 'This email is already registered. Please login or use another email.',
-    errorCreateProfile: isZh ? '创建资料失败' : 'Failed to create profile',
+    password: 'Password',
+    passwordPlaceholder: 'Min 6 characters',
+    confirmPassword: 'Confirm Password',
+    next: 'Next',
+    back: 'Back',
+    signup: 'Sign Up',
+    step1Title: 'Basic info',
+    step2Title: 'Contact & optional',
+    merchantName: 'Merchant Name',
+    merchantNamePlaceholder: 'Store name',
+    locationLabel: 'Location',
+    locationPlaceholder: 'e.g. SoHo, Flushing, Midtown',
+    categoryLabel: 'Category',
+    categoryPlaceholder: 'Merchant type/style',
+    contact: 'Contact',
+    wechat: 'WeChat',
+    phone: 'Phone',
+    contactPlaceholder: 'WeChat ID or phone number',
+    descriptionLabel: 'Description',
+    descriptionPlaceholder: 'Brief description (optional)',
+    cuisineTagsLabel: 'Cuisine tags',
+    cuisineTagsPlaceholder: 'e.g. Sichuan, Dim Sum (comma separated)',
+    notesLabel: 'Notes',
+    notesPlaceholder: 'Optional',
+    errorFillAll: 'Please fill in all required fields',
+    errorPasswordLength: 'Password must be at least 6 characters',
+    errorPasswordMatch: 'Passwords do not match',
+    errorContactRequired: 'Please enter WeChat ID or phone number',
+    errorSignupFailed: 'Signup failed',
+    errorAccountExists: 'This email is already registered. Please login or use another email.',
+    errorCreateProfile: 'Failed to create profile',
   };
 
   const validateStep0 = (): boolean => {
@@ -206,55 +212,73 @@ export const MerchantSignup: React.FC = () => {
     }
   };
 
+  const steps = [copy.email, copy.step1Title, copy.step2Title];
+
   return (
-    <div className="min-h-screen bg-hopon-grey flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white border-2 border-black p-8">
-        <h1 className="font-display font-bold text-2xl uppercase tracking-tight text-hopon-black mb-2">
-          {copy.title}
-        </h1>
-        <p className="text-sm text-black/60 mb-6">{copy.subtitle}</p>
+    <BrandAuthLayout
+      eyebrow="Join hOpOn merchant"
+      title={copy.title}
+      description="Create your merchant account. After approval, you can use Growth, Campaigns, Review, Hunt, and attribution workflows."
+      badges={['Start small', 'AI growth agent', 'Trackable campaigns']}
+    >
+      <div>
+        <div className="mb-6">
+          <p className="font-mono text-xs uppercase tracking-[0.22em] text-black/45">{copy.subtitle}</p>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {steps.map((label, index) => (
+              <div
+                key={label}
+                className={`rounded-full px-2 py-2 text-center font-mono text-[10px] uppercase tracking-wider ${
+                  index <= step ? 'bg-hopon-black text-white' : 'border border-black/10 bg-[#FAFAF7] text-black/40'
+                }`}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
 
         {step === 0 && (
           <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.email} *</label>
+              <FieldLabel>{copy.email} *</FieldLabel>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={copy.emailPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 required
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.password} *</label>
+              <FieldLabel>{copy.password} *</FieldLabel>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={copy.passwordPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 minLength={6}
                 required
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.confirmPassword} *</label>
+              <FieldLabel>{copy.confirmPassword} *</FieldLabel>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={copy.passwordPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 minLength={6}
                 required
               />
             </div>
-            {error && <p className="text-sm text-hopon-red">{error}</p>}
+            {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
             <button
               type="submit"
-              className="w-full h-12 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors"
+              className={`${brandPrimaryButtonClass} w-full`}
             >
               {copy.next}
             </button>
@@ -263,53 +287,53 @@ export const MerchantSignup: React.FC = () => {
 
         {step === 1 && (
           <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
-            <p className="font-mono text-xs uppercase text-black/50 mb-2">{isZh ? '第 1 步 / 共 2 步' : 'Step 1 of 2'}</p>
-            <h2 className="font-display font-bold text-sm uppercase tracking-wider text-black/80">{copy.step1Title}</h2>
+            <p className="font-mono text-xs uppercase tracking-wider text-black/45 mb-2">Step 1 of 2</p>
+            <h2 className="font-display text-xl font-bold tracking-tight text-hopon-black">{copy.step1Title}</h2>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.merchantName} *</label>
+              <FieldLabel>{copy.merchantName} *</FieldLabel>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={copy.merchantNamePlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 required
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.locationLabel} *</label>
+              <FieldLabel>{copy.locationLabel} *</FieldLabel>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder={copy.locationPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 required
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.categoryLabel} *</label>
+              <FieldLabel>{copy.categoryLabel} *</FieldLabel>
               <input
                 type="text"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 placeholder={copy.categoryPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 required
               />
             </div>
-            {error && <p className="text-sm text-hopon-red">{error}</p>}
+            {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setStep(0)}
-                className="flex-1 h-12 border-2 border-black bg-white text-hopon-black font-mono text-sm uppercase"
+                className={`${brandSecondaryButtonClass} flex-1`}
               >
                 {copy.back}
               </button>
               <button
                 type="submit"
-                className="flex-1 h-12 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red"
+                className={`${brandPrimaryButtonClass} flex-1`}
               >
                 {copy.next}
               </button>
@@ -319,22 +343,22 @@ export const MerchantSignup: React.FC = () => {
 
         {step === 2 && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <p className="font-mono text-xs uppercase text-black/50 mb-2">{isZh ? '第 2 步 / 共 2 步' : 'Step 2 of 2'}</p>
-            <h2 className="font-display font-bold text-sm uppercase tracking-wider text-black/80">{copy.step2Title}</h2>
+            <p className="font-mono text-xs uppercase tracking-wider text-black/45 mb-2">Step 2 of 2</p>
+            <h2 className="font-display text-xl font-bold tracking-tight text-hopon-black">{copy.step2Title}</h2>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-2">{copy.contact} *</label>
+              <FieldLabel>{copy.contact} *</FieldLabel>
               <div className="flex gap-2 mb-2">
                 <button
                   type="button"
                   onClick={() => setContactType('wechat')}
-                  className={`flex-1 py-2 border-2 font-mono text-xs uppercase ${contactType === 'wechat' ? 'bg-hopon-black text-white border-black' : 'border-black/30 text-black/70'}`}
+                  className={`flex-1 rounded-2xl py-2 font-mono text-xs uppercase tracking-wider ${contactType === 'wechat' ? 'bg-hopon-black text-white' : 'border border-black/15 bg-white text-black/60'}`}
                 >
                   {copy.wechat}
                 </button>
                 <button
                   type="button"
                   onClick={() => setContactType('phone')}
-                  className={`flex-1 py-2 border-2 font-mono text-xs uppercase ${contactType === 'phone' ? 'bg-hopon-black text-white border-black' : 'border-black/30 text-black/70'}`}
+                  className={`flex-1 rounded-2xl py-2 font-mono text-xs uppercase tracking-wider ${contactType === 'phone' ? 'bg-hopon-black text-white' : 'border border-black/15 bg-white text-black/60'}`}
                 >
                   {copy.phone}
                 </button>
@@ -344,54 +368,54 @@ export const MerchantSignup: React.FC = () => {
                 value={contactValue}
                 onChange={(e) => setContactValue(e.target.value)}
                 placeholder={copy.contactPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
                 required
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.descriptionLabel}</label>
+              <FieldLabel>{copy.descriptionLabel}</FieldLabel>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={copy.descriptionPlaceholder}
                 rows={3}
-                className="w-full border-2 border-black px-4 py-3 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red resize-y"
+                className={`${brandTextareaClass} resize-y`}
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.cuisineTagsLabel}</label>
+              <FieldLabel>{copy.cuisineTagsLabel}</FieldLabel>
               <input
                 type="text"
                 value={cuisineTags}
                 onChange={(e) => setCuisineTags(e.target.value)}
                 placeholder={copy.cuisineTagsPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
               />
             </div>
             <div>
-              <label className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">{copy.notesLabel}</label>
+              <FieldLabel>{copy.notesLabel}</FieldLabel>
               <input
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={copy.notesPlaceholder}
-                className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+                className={brandInputClass}
               />
             </div>
-            {error && <p className="text-sm text-hopon-red">{error}</p>}
+            {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setStep(1)}
                 disabled={loading}
-                className="flex-1 h-12 border-2 border-black bg-white text-hopon-black font-mono text-sm uppercase disabled:opacity-50"
+                className={`${brandSecondaryButtonClass} flex-1`}
               >
                 {copy.back}
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 h-12 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red disabled:opacity-50"
+                className={`${brandPrimaryButtonClass} flex-1`}
               >
                 {loading ? '…' : copy.signup}
               </button>
@@ -406,9 +430,9 @@ export const MerchantSignup: React.FC = () => {
           </Link>
         </p>
         <p className="mt-2 text-sm text-black/50 text-center">
-          <Link to="/" className="hover:underline">{isZh ? '返回主站' : 'Back to home'}</Link>
+          <Link to="/" className="hover:underline">Back to home</Link>
         </p>
       </div>
-    </div>
+    </BrandAuthLayout>
   );
 };

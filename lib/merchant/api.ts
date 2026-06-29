@@ -8,6 +8,8 @@ import type {
   Restaurant,
   MerchantSessionState,
   Campaign,
+  CampaignSourcingRequest,
+  CampaignSourcingCandidate,
   Application,
   Deliverable,
   DraftPost,
@@ -301,6 +303,61 @@ export async function getCampaignById(id: string): Promise<Campaign | null> {
   }
   if (!data) return null;
   return mapRowToCampaign(data as Record<string, unknown>);
+}
+
+function mapSourcingCandidate(row: Record<string, unknown>): CampaignSourcingCandidate {
+  const fitReasons = Array.isArray(row.fit_reasons) ? (row.fit_reasons as unknown[]).map(String).filter(Boolean) : [];
+  return {
+    id: row.id as string,
+    platform: String(row.platform ?? 'instagram'),
+    handle: (row.handle as string | null) ?? null,
+    profileUrl: (row.profile_url as string | null) ?? null,
+    displayName: (row.display_name as string | null) ?? null,
+    followers: (row.followers as number | null) ?? null,
+    score: (row.score as number | null) ?? null,
+    fitReasons,
+    merchantStatus: (row.merchant_status as string | null) ?? null,
+    outreachStatus: (row.outreach_status as string | null) ?? null,
+  };
+}
+
+function mapSourcingRequest(row: Record<string, unknown>): CampaignSourcingRequest {
+  const candidates = Array.isArray(row.campaign_sourcing_candidates)
+    ? (row.campaign_sourcing_candidates as Record<string, unknown>[]).map(mapSourcingCandidate)
+    : [];
+  return {
+    id: row.id as string,
+    campaignId: row.campaign_id as string,
+    status: String(row.status ?? 'reviewing'),
+    searchBrief: (row.search_brief as string | null) ?? null,
+    generatedTags: Array.isArray(row.generated_tags) ? (row.generated_tags as unknown[]).map(String).filter(Boolean) : [],
+    platforms: Array.isArray(row.platforms) ? (row.platforms as unknown[]).map(String).filter(Boolean) : [],
+    neededCreatorCount: Number(row.needed_creator_count ?? 0),
+    lastRunAt: (row.last_run_at as string | null) ?? null,
+    candidates,
+  };
+}
+
+export async function listCampaignSourcingRequests(campaignId: string): Promise<CampaignSourcingRequest[]> {
+  const { data, error } = await supabase
+    .from('campaign_sourcing_requests')
+    .select(
+      'id,campaign_id,status,search_brief,generated_tags,platforms,needed_creator_count,last_run_at,campaign_sourcing_candidates!inner(id,platform,handle,profile_url,display_name,followers,score,fit_reasons,merchant_status,merchant_visible)'
+    )
+    .eq('campaign_id', campaignId)
+    .eq('campaign_sourcing_candidates.merchant_visible', true)
+    .order('updated_at', { ascending: false });
+  if (error) {
+    if (!isMissingRelationError(error)) console.error('[listCampaignSourcingRequests]', error);
+    return [];
+  }
+  return (data ?? [])
+    .map((row: Record<string, unknown>) => {
+      const request = mapSourcingRequest(row);
+      request.candidates = request.candidates.filter((candidate) => Boolean(candidate.id) && candidate.merchantStatus !== 'hidden');
+      return request;
+    })
+    .filter((request) => request.candidates.length > 0 || ['running', 'reviewing', 'merchant_review', 'outreach'].includes(request.status));
 }
 
 /** Audit §2.1 + §9: createCampaign — match Blanc payload (type, budget, start_date, end_date, location, requirements). */

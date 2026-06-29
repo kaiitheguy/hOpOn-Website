@@ -11,17 +11,25 @@ import {
   listApplicantsForRestaurant,
   listDeliverablesForRestaurant,
   listDraftPostsForRestaurant,
+  listCampaignSourcingRequests,
   reviewDraftPost,
   reviewDeliverable,
   sendNotification,
 } from '../../lib/merchant/api';
 import { COPY_ZH, COPY_EN } from '../../lib/merchant/constants';
-import type { Campaign, Application, Deliverable, DraftPost } from '../../lib/merchant/types';
+import type { Campaign, Application, Deliverable, DraftPost, CampaignSourcingRequest } from '../../lib/merchant/types';
 import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 import { PostPreviewModal } from '../../components/merchant/PostPreviewModal';
 
 function getCreatorName(app: Application): string {
   return app.creatorName ?? (app.creator as { name?: string })?.name ?? '—';
+}
+
+function formatFollowers(value?: number | null): string {
+  if (!value) return '—';
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(value >= 10000 ? 0 : 1)}K`;
+  return String(value);
 }
 
 export const CampaignDetail: React.FC = () => {
@@ -31,6 +39,7 @@ export const CampaignDetail: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [draftPosts, setDraftPosts] = useState<DraftPost[]>([]);
+  const [sourcingRequests, setSourcingRequests] = useState<CampaignSourcingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; error?: boolean } | null>(null);
   const [nudgingId, setNudgingId] = useState<string | null>(null);
@@ -52,11 +61,12 @@ export const CampaignDetail: React.FC = () => {
     }
     setLoading(true);
     try {
-      const [camp, apps, delivs, drafts] = await Promise.all([
+      const [camp, apps, delivs, drafts, sourcing] = await Promise.all([
         getCampaignById(id),
         listApplicantsForRestaurant(userId),
         listDeliverablesForRestaurant(userId),
         listDraftPostsForRestaurant(userId),
+        listCampaignSourcingRequests(id),
       ]);
       setCampaign(camp ?? null);
       const campaignApps = (apps ?? []).filter((a) => a.campaign_id === id);
@@ -64,6 +74,7 @@ export const CampaignDetail: React.FC = () => {
       setApplications(campaignApps);
       setDeliverables((delivs ?? []).filter((d) => campaignAppIds.has(d.application_id)));
       setDraftPosts((drafts ?? []).filter((dp) => campaignAppIds.has(dp.application_id)));
+      setSourcingRequests(sourcing ?? []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -277,6 +288,83 @@ export const CampaignDetail: React.FC = () => {
           </p>
         ) : null}
       </section>
+
+      {sourcingRequests.length > 0 && (
+        <section className="border-2 border-black p-6 mb-6 bg-white">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h2 className="font-display font-bold text-sm uppercase tracking-wider text-black/70">
+                {isZh ? '外部博主搜寻' : 'External creator sourcing'}
+              </h2>
+              <p className="mt-1 text-sm text-black/55">
+                {isZh
+                  ? 'hOpOn 正在为这个活动补充平台外的合适创作者。只显示已通过 admin 初筛的候选人。'
+                  : 'hOpOn is sourcing additional creators outside the platform. Only admin-reviewed candidates are shown here.'}
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full border border-emerald-200 bg-emerald-50 font-mono text-[11px] uppercase tracking-wider text-emerald-800">
+              {isZh ? '人工审核中' : 'Human reviewed'}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {sourcingRequests.map((request) => (
+              <div key={request.id} className="rounded-2xl border border-black/10 bg-[#FAFAF7] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-black/10 bg-white px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-black/50">
+                      {request.status}
+                    </span>
+                    {request.platforms.map((platform) => (
+                      <span key={platform} className="rounded-full border border-black/10 bg-white px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-black/50">
+                        {platform}
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs text-black/40">
+                    {request.candidates.length} {isZh ? '位候选人' : 'candidates'}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {request.candidates.map((candidate) => (
+                    <article key={candidate.id} className="rounded-2xl border border-black/10 bg-white p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-display font-bold text-hopon-black">
+                            {candidate.displayName ?? (candidate.handle ? `@${candidate.handle}` : isZh ? '创作者' : 'Creator')}
+                          </p>
+                          <p className="mt-1 text-sm text-black/50">
+                            {candidate.platform} · {formatFollowers(candidate.followers)} {isZh ? '粉丝' : 'followers'}
+                            {candidate.score != null ? ` · ${candidate.score}/100` : ''}
+                          </p>
+                        </div>
+                        {candidate.profileUrl && (
+                          <a
+                            href={candidate.profileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="shrink-0 px-3 py-1.5 border border-black/15 rounded-xl font-mono text-xs uppercase text-black/65 hover:bg-hopon-grey"
+                          >
+                            {isZh ? '打开' : 'Open'}
+                          </a>
+                        )}
+                      </div>
+                      {candidate.fitReasons.length > 0 && (
+                        <ul className="mt-3 space-y-1.5">
+                          {candidate.fitReasons.slice(0, 3).map((reason) => (
+                            <li key={reason} className="text-sm leading-6 text-black/60">
+                              • {reason}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="border-2 border-black p-6">
         <h2 className="font-display font-bold text-sm uppercase tracking-wider text-black/70 mb-4">

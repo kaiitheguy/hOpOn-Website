@@ -18,7 +18,7 @@ export const MerchantAuthGate: React.FC<{ children: React.ReactNode }> = ({ chil
   if (state == null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-hopon-grey">
-        <p className="font-display font-bold text-hopon-black">加载中…</p>
+        <p className="font-display font-bold text-hopon-black">Loading…</p>
       </div>
     );
   }

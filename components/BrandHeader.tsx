@@ -1,13 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-/** 与主站一致的 header 左侧：icon + hOpOn / 串店 lockup。icon 复用 NavBar 的 inline SVG（红色串串）；若有 icon.png/logo.svg 可替换此处。 */
+/** Compact hOpOn header lockup shared by utility pages. */
 export const BrandHeader: React.FC<{ rightSlot?: React.ReactNode }> = ({ rightSlot }) => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-black">
       <div className="flex justify-between items-center px-4 md:px-8 py-4 md:py-5 max-w-[1920px] mx-auto">
         <Link to="/" className="flex items-center gap-3 group cursor-pointer">
-          {/* Pixel Art Skewer Logo - 与 NavBar 一致；可替换为 icon.png / logo.svg */}
           <div className="relative w-8 h-8 md:w-10 md:h-10 transition-transform duration-300 group-hover:rotate-12">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-sm">
               <rect x="11" y="2" width="2" height="20" fill="#5C3A21" stroke="black" strokeWidth="1.5" />
@@ -22,7 +21,7 @@ export const BrandHeader: React.FC<{ rightSlot?: React.ReactNode }> = ({ rightSl
               hOpOn
             </span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-black/60 leading-none mt-0.5">
-              / 串店
+              Growth Platform
             </span>
           </div>
         </Link>

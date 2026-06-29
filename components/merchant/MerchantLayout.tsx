@@ -4,10 +4,10 @@ import { BarChart3, Bell, BriefcaseBusiness, FileCheck, Search, Trophy, User } f
 import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 
 export const MerchantLayout: React.FC = () => {
-  const { locale, setLocale, t, isZh } = useMerchantLocale();
+  const { t } = useMerchantLocale();
   const nav = [
-    { to: '/merchant', end: true, label: isZh ? '主页' : 'Growth', icon: BarChart3 },
-    { to: '/merchant/campaigns', end: false, label: isZh ? '活动' : 'Campaigns', icon: BriefcaseBusiness },
+    { to: '/merchant', end: true, label: 'Growth', icon: BarChart3 },
+    { to: '/merchant/campaigns', end: false, label: 'Campaigns', icon: BriefcaseBusiness },
     { to: '/merchant/review', end: false, label: t.review, icon: FileCheck },
     { to: '/merchant/hunt', end: false, label: t.hunt, icon: Search },
     { to: '/merchant/achievements', end: false, label: t.achievementsTitle, icon: Trophy },
@@ -17,6 +17,12 @@ export const MerchantLayout: React.FC = () => {
   return (
     <div className="merchant-shell min-h-screen bg-[#F7F2E8] text-hopon-black flex flex-col">
       <style>{`
+        .merchant-shell {
+          background:
+            radial-gradient(circle at 8% 4%, rgba(255, 42, 42, 0.09), transparent 26rem),
+            radial-gradient(circle at 88% 2%, rgba(13, 148, 136, 0.08), transparent 22rem),
+            linear-gradient(180deg, #fbf6ec 0%, #f7f2e8 54%, #f1e4d5 100%);
+        }
         .merchant-shell main :where(input, textarea, select).border-2 {
           border-width: 1px;
           border-color: rgb(0 0 0 / 0.14);
@@ -70,7 +76,7 @@ export const MerchantLayout: React.FC = () => {
                 hOpOn
               </span>
               <span className="font-mono text-[10px] uppercase tracking-widest text-black/60 leading-none mt-0.5">
-                / 串店
+                Merchant OS
               </span>
             </div>
           </Link>
@@ -99,26 +105,10 @@ export const MerchantLayout: React.FC = () => {
                   isActive ? 'bg-hopon-red text-white border-hopon-red' : 'border-transparent text-black/65 hover:text-hopon-black hover:bg-white hover:border-black/10'
                 }`
               }
-              aria-label={isZh ? '通知' : 'Notifications'}
+              aria-label="Notifications"
             >
               <Bell className="w-4 h-4" />
             </NavLink>
-            <div className="ml-2 flex overflow-hidden rounded-full border border-black/10 bg-white">
-              <button
-                type="button"
-                onClick={() => setLocale('zh')}
-                className={`px-2.5 py-1.5 font-mono text-xs uppercase ${locale === 'zh' ? 'bg-hopon-black text-white' : 'text-black/60 hover:bg-black/5'}`}
-              >
-                中
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocale('en')}
-                className={`px-2.5 py-1.5 font-mono text-xs uppercase ${locale === 'en' ? 'bg-hopon-black text-white' : 'text-black/60 hover:bg-black/5'}`}
-              >
-                En
-              </button>
-            </div>
           </nav>
         </div>
       </header>

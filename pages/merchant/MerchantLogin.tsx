@@ -2,10 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { getMerchantSessionState } from '../../lib/merchant/api';
-import { useMerchantLocale } from '../../context/MerchantLocaleContext';
+import {
+  BrandAuthLayout,
+  FieldLabel,
+  brandInputClass,
+  brandPrimaryButtonClass,
+} from '../../components/BrandChrome';
 
 export const MerchantLogin: React.FC = () => {
-  const { isZh } = useMerchantLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,21 +20,21 @@ export const MerchantLogin: React.FC = () => {
   const from = (location.state as { from?: string })?.from ?? '/merchant';
 
   const copy = {
-    title: isZh ? '商家登录' : 'Merchant Login',
-    subtitle: isZh ? '商家登录' : 'Merchant sign in',
-    email: isZh ? '邮箱' : 'Email',
+    title: 'Merchant Login',
+    subtitle: 'Merchant sign in',
+    email: 'Email',
     emailPlaceholder: 'you@example.com',
-    password: isZh ? '密码' : 'Password',
-    login: isZh ? '登录' : 'Login',
-    loggingIn: isZh ? '登录中…' : 'Logging in…',
-    loginSuccess: isZh ? '登录成功' : 'Login successful',
-    loginFailed: isZh ? '登录失败' : 'Login failed',
-    noAccount: isZh ? '没有账号？' : "Don't have an account? ",
-    signup: isZh ? '注册' : 'Sign up',
-    forgotPassword: isZh ? '忘记密码？' : 'Forgot password?',
-    resetSent: isZh ? '重置密码邮件已发送，请检查邮箱' : 'Password reset email sent. Check your inbox.',
-    resetFailed: isZh ? '发送失败' : 'Could not send reset email',
-    backToHome: isZh ? '返回主站' : 'Back to home',
+    password: 'Password',
+    login: 'Login',
+    loggingIn: 'Logging in…',
+    loginSuccess: 'Login successful',
+    loginFailed: 'Login failed',
+    noAccount: "Don't have an account? ",
+    signup: 'Sign up',
+    forgotPassword: 'Forgot password?',
+    resetSent: 'Password reset email sent. Check your inbox.',
+    resetFailed: 'Could not send reset email',
+    backToHome: 'Back to home',
   };
 
   const routeAfterAuth = async () => {
@@ -48,7 +52,7 @@ export const MerchantLogin: React.FC = () => {
       return;
     }
     if (state.reason === 'not_merchant' || !state.userId) {
-      setMessage({ type: 'error', text: isZh ? '该账号不是商家账号' : 'This is not a merchant account' });
+      setMessage({ type: 'error', text: 'This is not a merchant account' });
       return;
     }
     navigate(from, { replace: true });
@@ -88,32 +92,34 @@ export const MerchantLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-hopon-grey flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white border-2 border-black p-8">
-        <h1 className="font-display font-bold text-2xl uppercase tracking-tight text-hopon-black mb-2">
-          {copy.title}
-        </h1>
-        <p className="text-sm text-black/60 mb-6">{copy.subtitle}</p>
+    <BrandAuthLayout
+      eyebrow="Merchant growth workspace"
+      title={copy.title}
+      description="Sign in to manage growth, campaigns, creator review, sourcing candidates, and attribution."
+      badges={['Campaigns', 'Creator review', 'Attribution']}
+    >
+      <div>
+        <p className="mb-6 font-mono text-xs uppercase tracking-[0.22em] text-black/45">{copy.subtitle}</p>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block font-mono text-xs uppercase tracking-wider text-black/70 mb-1">
+            <FieldLabel htmlFor="email">
               {copy.email}
-            </label>
+            </FieldLabel>
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+              className={brandInputClass}
               placeholder={copy.emailPlaceholder}
               required
             />
           </div>
           <div>
             <div className="flex items-center justify-between gap-3 mb-1">
-              <label htmlFor="password" className="block font-mono text-xs uppercase tracking-wider text-black/70">
+              <FieldLabel htmlFor="password">
                 {copy.password}
-              </label>
+              </FieldLabel>
               <button
                 type="button"
                 onClick={handleResetPassword}
@@ -128,7 +134,7 @@ export const MerchantLogin: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-12 border-2 border-black px-4 font-mono text-sm bg-white focus:outline-none focus:ring-2 focus:ring-hopon-red"
+              className={brandInputClass}
               required
             />
           </div>
@@ -140,7 +146,7 @@ export const MerchantLogin: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 border-2 border-black bg-hopon-black text-white font-display font-bold text-sm uppercase tracking-wider hover:bg-hopon-red transition-colors disabled:opacity-50"
+            className={`${brandPrimaryButtonClass} w-full`}
           >
             {loading ? copy.loggingIn : copy.login}
           </button>
@@ -153,6 +159,6 @@ export const MerchantLogin: React.FC = () => {
           <Link to="/" className="hover:underline">{copy.backToHome}</Link>
         </p>
       </div>
-    </div>
+    </BrandAuthLayout>
   );
 };

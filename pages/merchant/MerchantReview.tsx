@@ -317,7 +317,7 @@ export const MerchantReview: React.FC = () => {
   if (loading && applications.length === 0) {
     return (
       <div className="py-12 flex justify-center">
-        <p className="font-display font-bold text-hopon-black">加载中…</p>
+        <p className="font-display font-bold text-hopon-black">Loading…</p>
       </div>
     );
   }

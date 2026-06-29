@@ -402,11 +402,16 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
 
     if (!functionError) {
       const campaigns = normalizePublicRedeemCampaigns(functionCampaigns);
-      cacheVerifyAvatars(campaigns);
-      return applyCachedVerifyAvatars(campaigns);
+      if (campaigns.length > 0) {
+        cacheVerifyAvatars(campaigns);
+        return applyCachedVerifyAvatars(campaigns);
+      }
     }
-
-    console.warn('[listActiveHoponRedeemCampaigns] public function failed, falling back to RPC', functionError.message);
+    if (functionError) {
+      console.warn('[listActiveHoponRedeemCampaigns] public function failed, falling back to RPC', functionError.message);
+    } else {
+      console.warn('[listActiveHoponRedeemCampaigns] public function returned no campaigns, falling back to RPC');
+    }
 
     const { data: publicCampaigns, error: publicError } = await getClient().rpc('list_public_redeem_campaigns', {
       p_limit: 12,
