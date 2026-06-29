@@ -14,6 +14,7 @@ import {
   brandSecondaryButtonClass,
   brandTextareaClass,
 } from '../../components/BrandChrome';
+import { passwordPolicyError, passwordPolicyText, validatePasswordStrength } from '../../lib/passwordPolicy';
 
 type Step = 0 | 1 | 2;
 
@@ -42,7 +43,7 @@ export const MerchantSignup: React.FC = () => {
     email: 'Email',
     emailPlaceholder: 'you@example.com',
     password: 'Password',
-    passwordPlaceholder: 'Min 6 characters',
+    passwordPlaceholder: 'Create a secure password',
     confirmPassword: 'Confirm Password',
     next: 'Next',
     back: 'Back',
@@ -66,7 +67,7 @@ export const MerchantSignup: React.FC = () => {
     notesLabel: 'Notes',
     notesPlaceholder: 'Optional',
     errorFillAll: 'Please fill in all required fields',
-    errorPasswordLength: 'Password must be at least 6 characters',
+    errorPasswordLength: 'Password must be at least 8 characters',
     errorPasswordMatch: 'Passwords do not match',
     errorContactRequired: 'Please enter WeChat ID or phone number',
     errorSignupFailed: 'Signup failed',
@@ -79,8 +80,9 @@ export const MerchantSignup: React.FC = () => {
       setError(copy.errorFillAll);
       return false;
     }
-    if (password.length < 6) {
-      setError(copy.errorPasswordLength);
+    const passwordIssue = validatePasswordStrength(password, email.trim());
+    if (passwordIssue) {
+      setError(passwordPolicyError(passwordIssue));
       return false;
     }
     if (password !== confirmPassword) {
@@ -259,7 +261,7 @@ export const MerchantSignup: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={copy.passwordPlaceholder}
                 className={brandInputClass}
-                minLength={6}
+                minLength={8}
                 required
               />
             </div>
@@ -271,9 +273,10 @@ export const MerchantSignup: React.FC = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={copy.passwordPlaceholder}
                 className={brandInputClass}
-                minLength={6}
+                minLength={8}
                 required
               />
+              <p className="mt-2 text-xs leading-5 text-black/45">{passwordPolicyText()}</p>
             </div>
             {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
             <button
