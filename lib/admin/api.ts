@@ -18,6 +18,11 @@ import type {
 type DbError = { code?: string; message?: string; details?: string | null };
 type JsonRecord = Record<string, unknown>;
 type CandidateInviteRow = { candidate_id?: string | null; invite_token?: string | null; dm_draft?: string | null; invite_url?: string | null; status?: string | null };
+type CandidateInviteSeed = {
+  candidateId: string;
+  lead: GrowthOsLead;
+  status: string;
+};
 
 const HOPON_WEB_BASE_URL = 'https://www.thehoponapp.com';
 const CREATOR_INVITE_BASE_URL = `${HOPON_WEB_BASE_URL}/creator/invite`;
@@ -622,6 +627,71 @@ function generateInviteToken(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 14)}`;
 }
 
+async function ensureCandidateInvites(request: CampaignSourcingRequest, seeds: CandidateInviteSeed[]): Promise<void> {
+  if (!seeds.length) return;
+
+  const candidateIds = seeds.map((seed) => seed.candidateId);
+  const { data: existingInvites, error: existingError } = await supabase
+    .from('campaign_sourcing_invites')
+    .select('candidate_id,invite_token,invite_url,dm_draft,status')
+    .in('candidate_id', candidateIds);
+  if (existingError) throw existingError;
+
+  const existingByCandidateId = new Map<string, CandidateInviteRow>();
+  for (const invite of existingInvites ?? []) {
+    if (invite.candidate_id) existingByCandidateId.set(invite.candidate_id, invite);
+  }
+
+  const insertRows: JsonRecord[] = [];
+  const updateRows: (JsonRecord & { candidate_id: string })[] = [];
+  for (const seed of seeds) {
+    const existing = existingByCandidateId.get(seed.candidateId);
+    if (!existing) {
+      const inviteToken = generateInviteToken();
+      const inviteUrl = inviteUrlForToken(inviteToken);
+      insertRows.push({
+        candidate_id: seed.candidateId,
+        sourcing_request_id: request.id,
+        campaign_id: request.campaignId,
+        restaurant_id: request.restaurantId,
+        invite_token: inviteToken,
+        invite_url: inviteUrl,
+        dm_draft: generateDmDraft(request, seed.lead, inviteUrl),
+        status: seed.status,
+      });
+      continue;
+    }
+
+    if (!String(existing.dm_draft ?? '').trim()) {
+      const inviteToken = String(existing.invite_token ?? '').trim() || generateInviteToken();
+      const inviteUrl = normalizeInviteUrl(existing.invite_url, inviteToken) ?? inviteUrlForToken(inviteToken);
+      updateRows.push({
+        candidate_id: seed.candidateId,
+        invite_token: inviteToken,
+        invite_url: inviteUrl,
+        dm_draft: generateDmDraft(request, seed.lead, inviteUrl),
+        status: existing.status ?? seed.status,
+      });
+    }
+  }
+
+  if (insertRows.length) {
+    const { error } = await supabase
+      .from('campaign_sourcing_invites')
+      .upsert(insertRows, { onConflict: 'candidate_id', ignoreDuplicates: true });
+    if (error) throw error;
+  }
+
+  for (const row of updateRows) {
+    const { candidate_id, ...payload } = row;
+    const { error } = await supabase
+      .from('campaign_sourcing_invites')
+      .update(payload)
+      .eq('candidate_id', candidate_id);
+    if (error) throw error;
+  }
+}
+
 function generateDmDraft(request: CampaignSourcingRequest, lead: GrowthOsLead, inviteUrl: string | null): string {
   const campaign = request.campaign;
   const merchant = campaign?.restaurant?.name ?? 'a local hOpOn merchant';
@@ -684,11 +754,9 @@ export async function importTopGrowthLeadsForRequest(
   const candidatesWithInvites = leads.slice(0, limit).map((lead) => {
     const platform = leadPlatform(lead);
     const handle = leadHandle(lead, platform);
-    const inviteToken = generateInviteToken();
-    const inviteUrl = inviteUrlForToken(inviteToken);
-    const dmDraft = generateDmDraft(request, lead, inviteUrl);
     return {
       growthOsLeadId: lead.id,
+      lead,
       candidate: {
         sourcing_request_id: request.id,
         campaign_id: request.campaignId,
@@ -707,12 +775,6 @@ export async function importTopGrowthLeadsForRequest(
         outreach_status: 'drafted',
         merchant_visible: false,
       },
-      invite: {
-        invite_token: inviteToken,
-        invite_url: inviteUrl,
-        dm_draft: dmDraft,
-        status: 'drafted',
-      },
     };
   });
 
@@ -726,18 +788,27 @@ export async function importTopGrowthLeadsForRequest(
   for (const row of upsertedCandidates ?? []) {
     if (row.growth_os_lead_id && row.id) candidateIdByLeadId.set(row.growth_os_lead_id, row.id);
   }
-  const inviteRows = candidatesWithInvites
+  if (candidateIdByLeadId.size < candidatesWithInvites.length) {
+    const missingLeadIds = candidatesWithInvites
+      .map((item) => item.growthOsLeadId)
+      .filter((leadId) => !candidateIdByLeadId.has(leadId));
+    const { data: existingCandidates, error: existingCandidateError } = await supabase
+      .from('campaign_sourcing_candidates')
+      .select('id,growth_os_lead_id')
+      .eq('sourcing_request_id', request.id)
+      .in('growth_os_lead_id', missingLeadIds);
+    if (existingCandidateError) throw existingCandidateError;
+    for (const row of existingCandidates ?? []) {
+      if (row.growth_os_lead_id && row.id) candidateIdByLeadId.set(row.growth_os_lead_id, row.id);
+    }
+  }
+  const inviteSeeds = candidatesWithInvites
     .map((item) => {
       const candidateId = candidateIdByLeadId.get(item.growthOsLeadId);
-      return candidateId ? { ...item.invite, candidate_id: candidateId } : null;
+      return candidateId ? { candidateId, lead: item.lead, status: 'drafted' } : null;
     })
-    .filter(Boolean) as JsonRecord[];
-  if (inviteRows.length) {
-    const { error: inviteError } = await supabase
-      .from('campaign_sourcing_invites')
-      .upsert(inviteRows, { onConflict: 'candidate_id', ignoreDuplicates: true });
-    if (inviteError) throw inviteError;
-  }
+    .filter(Boolean) as CandidateInviteSeed[];
+  await ensureCandidateInvites(request, inviteSeeds);
   return candidatesWithInvites.length;
 }
 
@@ -824,7 +895,19 @@ export async function updateSourcingCandidate(
     if (error) throw error;
   }
   if ('dmDraft' in patch || patch.outreachStatus) {
-    const invitePayload: JsonRecord = { candidate_id: candidateId };
+    const { data: candidateRow, error: candidateError } = await supabase
+      .from('campaign_sourcing_candidates')
+      .select('sourcing_request_id,campaign_id,restaurant_id')
+      .eq('id', candidateId)
+      .single();
+    if (candidateError) throw candidateError;
+
+    const invitePayload: JsonRecord = {
+      candidate_id: candidateId,
+      sourcing_request_id: candidateRow.sourcing_request_id,
+      campaign_id: candidateRow.campaign_id,
+      restaurant_id: candidateRow.restaurant_id,
+    };
     if ('dmDraft' in patch) invitePayload.dm_draft = patch.dmDraft;
     if (patch.outreachStatus) invitePayload.status = patch.outreachStatus;
     const { error } = await supabase
