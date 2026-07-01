@@ -662,7 +662,7 @@ export async function importTopGrowthLeadsForRequest(
     )
     .order('overall_score', { ascending: false, nullsFirst: false })
     .limit(Math.max(limit, request.neededCreatorCount) * 3);
-  if (filters.city) {
+  if (filters.city && !options.campaignOnly) {
     query = query.ilike('city', `%${filters.city.split(',')[0].trim()}%`);
   }
   if (options.campaignOnly) {
@@ -782,7 +782,10 @@ export async function runGrowthDiscoveryForRequest(request: CampaignSourcingRequ
     if (error) {
       throw error;
     }
-    const imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true, updatedAfter: runStartedAt });
+    let imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true, updatedAfter: runStartedAt });
+    if (imported < request.neededCreatorCount) {
+      imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true });
+    }
     await supabase
       .from('campaign_sourcing_requests')
       .update({ status: imported > 0 ? 'reviewing' : 'ready', last_run_at: new Date().toISOString() })
