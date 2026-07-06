@@ -63,6 +63,9 @@ export const AdminSourcing: React.FC = () => {
     [campaigns, selectedCampaignId]
   );
   const selectedSeed = useMemo(() => (selectedCampaign ? buildSourcingSeed(selectedCampaign) : null), [selectedCampaign]);
+  const handleNeededCountChange = (value: string) => {
+    setNeededCount(value.replace(/\D/g, ''));
+  };
 
   const handleCreate = async () => {
     if (!selectedCampaignId || setupMissing || busy) return;
@@ -145,11 +148,12 @@ export const AdminSourcing: React.FC = () => {
               <div>
                 <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Creators needed</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={50}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  placeholder="8"
                   value={neededCount}
-                  onChange={(event) => setNeededCount(event.target.value)}
+                  onChange={(event) => handleNeededCountChange(event.target.value)}
                   className="admin-input h-12 w-full px-3 text-sm"
                 />
               </div>
