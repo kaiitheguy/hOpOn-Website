@@ -30,7 +30,7 @@ export const AdminSourcing: React.FC = () => {
   const [campaigns, setCampaigns] = useState<AdminCampaign[]>([]);
   const [requests, setRequests] = useState<CampaignSourcingRequest[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
-  const [neededCount, setNeededCount] = useState(8);
+  const [neededCount, setNeededCount] = useState('8');
   const [loading, setLoading] = useState(true);
   const [setupMissing, setSetupMissing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -69,9 +69,13 @@ export const AdminSourcing: React.FC = () => {
     setBusy(true);
     setMessage(null);
     try {
+      const parsedNeededCount = Number(neededCount);
+      const normalizedNeededCount = Number.isFinite(parsedNeededCount) && parsedNeededCount > 0
+        ? Math.min(50, Math.round(parsedNeededCount))
+        : 8;
       const request = await createSourcingRequestFromCampaign({
         campaignId: selectedCampaignId,
-        neededCreatorCount: neededCount,
+        neededCreatorCount: normalizedNeededCount,
       });
       navigate(`/admin/sourcing/${request.id}`);
     } catch (error) {
@@ -145,7 +149,7 @@ export const AdminSourcing: React.FC = () => {
                   min={1}
                   max={50}
                   value={neededCount}
-                  onChange={(event) => setNeededCount(Number(event.target.value))}
+                  onChange={(event) => setNeededCount(event.target.value)}
                   className="admin-input h-12 w-full px-3 text-sm"
                 />
               </div>

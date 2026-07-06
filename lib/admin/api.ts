@@ -494,19 +494,6 @@ export async function createSourcingRequestFromCampaign(input: SourcingCreateDra
   if (!campaign) throw new Error('Campaign not found');
   const state = await getAdminSessionState();
   if (!state.userId || state.reason !== 'ready') throw new Error('Admin session required');
-  const { data: existing, error: existingError } = await supabase
-    .from('campaign_sourcing_requests')
-    .select(
-      '*,campaigns(id,restaurant_id,title,description,status,type,budget,location,start_date,end_date,platforms,created_at,restaurant_profiles(id,name,location,category,city_display,cuisine_tags,avatar,is_official))'
-    )
-    .eq('campaign_id', campaign.id)
-    .order('updated_at', { ascending: false })
-    .limit(8);
-  if (existingError && !isMissingRelationError(existingError)) throw existingError;
-  const reusable = (existing ?? [])
-    .map(mapRequest)
-    .find((request) => !['completed', 'cancelled'].includes(request.status));
-  if (reusable) return reusable;
 
   const seed = buildSourcingSeed(campaign);
   const { data, error } = await supabase
@@ -834,6 +821,7 @@ export async function runGrowthDiscoveryForRequest(request: CampaignSourcingRequ
       `Find individual creators who can make ${campaign?.restaurant?.name ?? 'this merchant'} feel visit-worthy for "${campaign?.title ?? 'this campaign'}" and drive measurable store visits or redemptions.`,
       260,
     ),
+    targetCreatorCount: request.neededCreatorCount,
   };
   const { error: updateError } = await supabase
     .from('campaign_sourcing_requests')
@@ -847,15 +835,17 @@ export async function runGrowthDiscoveryForRequest(request: CampaignSourcingRequ
         provider: 'openai-web-search',
         dryRun: false,
         filters,
+        targetCreatorCount: request.neededCreatorCount,
+        neededCreatorCount: request.neededCreatorCount,
         campaign: campaignContext,
       },
     });
     if (error) {
       throw error;
     }
-    let imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true, updatedAfter: runStartedAt });
+    let imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true, updatedAfter: runStartedAt });
     if (imported < request.neededCreatorCount) {
-      imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true });
+      imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true });
     }
     await supabase
       .from('campaign_sourcing_requests')
