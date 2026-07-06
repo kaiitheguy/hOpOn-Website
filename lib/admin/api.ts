@@ -27,6 +27,8 @@ type CandidateInviteSeed = {
 const HOPON_WEB_BASE_URL = 'https://www.thehoponapp.com';
 const CREATOR_INVITE_BASE_URL = `${HOPON_WEB_BASE_URL}/creator/invite`;
 const CREATOR_INVITE_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1|www\.thehoponapp\.com|thehoponapp\.com)(?::\d+)?\/creator\/invite\/([^/?#\s]+)/gi;
+const SOURCING_RUNNING_STALE_MS = 5 * 60 * 1000;
+const MAX_SOURCING_RUN_ATTEMPTS = 3;
 
 const SOURCING_CANDIDATE_SELECT = [
   'id',
@@ -551,10 +553,10 @@ export async function getSourcingDetail(requestId: string): Promise<SourcingDeta
   let request = mapRequest(requestData);
   if (request.status === 'running' && request.lastRunAt) {
     const lastRunMs = new Date(request.lastRunAt).getTime();
-    const isStaleRunning = Number.isFinite(lastRunMs) && Date.now() - lastRunMs > 2 * 60 * 1000;
+    const isStaleRunning = Number.isFinite(lastRunMs) && Date.now() - lastRunMs > SOURCING_RUNNING_STALE_MS;
     if (isStaleRunning) {
       try {
-        const imported = await importTopGrowthLeadsForRequest(request, 12, { campaignOnly: true, updatedAfter: request.lastRunAt });
+        const imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true, updatedAfter: request.lastRunAt });
         const nextStatus: CampaignSourcingRequest['status'] = imported > 0 ? 'reviewing' : 'ready';
         await supabase
           .from('campaign_sourcing_requests')
@@ -580,10 +582,40 @@ export async function getSourcingDetail(requestId: string): Promise<SourcingDeta
     if (isMissingRelationError(candidateError)) return { setupMissing: true, request, candidates: [] };
     throw candidateError;
   }
+  let candidateRows = ((candidateData ?? []) as any[]);
+  if (
+    candidateRows.length === 0 &&
+    request.lastRunAt &&
+    (request.status === 'ready' || request.status === 'running')
+  ) {
+    try {
+      const imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, {
+        campaignOnly: true,
+        updatedAfter: request.lastRunAt,
+      });
+      if (imported > 0) {
+        const nextStatus: CampaignSourcingRequest['status'] = 'reviewing';
+        await supabase
+          .from('campaign_sourcing_requests')
+          .update({ status: nextStatus, last_run_at: new Date().toISOString() })
+          .eq('id', request.id);
+        request = { ...request, status: nextStatus, lastRunAt: new Date().toISOString() };
+        const { data: recoveredCandidateData, error: recoveredCandidateError } = await supabase
+          .from('campaign_sourcing_candidates')
+          .select(SOURCING_CANDIDATE_SELECT)
+          .eq('sourcing_request_id', requestId)
+          .order('score', { ascending: false, nullsFirst: false });
+        if (recoveredCandidateError) throw recoveredCandidateError;
+        candidateRows = ((recoveredCandidateData ?? []) as any[]);
+      }
+    } catch {
+      candidateRows = ((candidateData ?? []) as any[]);
+    }
+  }
   return {
     setupMissing: false,
     request,
-    candidates: ((candidateData ?? []) as any[]).map((candidate) => mapCandidate(candidate)),
+    candidates: candidateRows.map((candidate) => mapCandidate(candidate)),
   };
 }
 
@@ -802,7 +834,6 @@ export async function importTopGrowthLeadsForRequest(
 export async function runGrowthDiscoveryForRequest(request: CampaignSourcingRequest): Promise<{ imported: number; raw: unknown }> {
   const filters = requestFilters(request);
   const campaign = request.campaign;
-  const runStartedAt = new Date().toISOString();
   const campaignContext = {
     id: request.campaignId,
     merchantName: campaign?.restaurant?.name ?? null,
@@ -823,39 +854,52 @@ export async function runGrowthDiscoveryForRequest(request: CampaignSourcingRequ
     ),
     targetCreatorCount: request.neededCreatorCount,
   };
-  const { error: updateError } = await supabase
-    .from('campaign_sourcing_requests')
-    .update({ status: 'running', last_run_at: runStartedAt })
-    .eq('id', request.id);
-  if (updateError) throw updateError;
-
   try {
-    const { data, error } = await supabase.functions.invoke('growth-run-campaign-sourcing', {
-      body: {
-        provider: 'openai-web-search',
-        dryRun: false,
-        filters,
-        targetCreatorCount: request.neededCreatorCount,
-        neededCreatorCount: request.neededCreatorCount,
-        campaign: campaignContext,
-      },
-    });
-    if (error) {
-      throw error;
+    const targetCount = request.neededCreatorCount || 12;
+    const attempts: unknown[] = [];
+    let imported = 0;
+
+    for (let attempt = 0; attempt < MAX_SOURCING_RUN_ATTEMPTS; attempt += 1) {
+      const attemptStartedAt = new Date().toISOString();
+      await supabase
+        .from('campaign_sourcing_requests')
+        .update({ status: 'running', last_run_at: attemptStartedAt })
+        .eq('id', request.id);
+
+      const { data, error } = await supabase.functions.invoke('growth-run-campaign-sourcing', {
+        body: {
+          provider: 'openai-web-search',
+          dryRun: false,
+          filters,
+          targetCreatorCount: targetCount,
+          neededCreatorCount: targetCount,
+          campaign: campaignContext,
+        },
+      });
+      if (error) {
+        throw error;
+      }
+      attempts.push(data);
+
+      imported = await importTopGrowthLeadsForRequest(request, targetCount, { campaignOnly: true, updatedAfter: attemptStartedAt });
+      if (imported < targetCount) {
+        imported = await importTopGrowthLeadsForRequest(request, targetCount, { campaignOnly: true });
+      }
+      if (imported >= targetCount) {
+        break;
+      }
     }
-    let imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true, updatedAfter: runStartedAt });
-    if (imported < request.neededCreatorCount) {
-      imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true });
-    }
+
     await supabase
       .from('campaign_sourcing_requests')
       .update({ status: imported > 0 ? 'reviewing' : 'ready', last_run_at: new Date().toISOString() })
       .eq('id', request.id);
-    return { imported, raw: data };
+    return { imported, raw: attempts };
   } catch (error) {
+    const imported = await importTopGrowthLeadsForRequest(request, request.neededCreatorCount || 12, { campaignOnly: true }).catch(() => 0);
     await supabase
       .from('campaign_sourcing_requests')
-      .update({ status: 'ready', last_run_at: new Date().toISOString() })
+      .update({ status: imported > 0 ? 'reviewing' : 'ready', last_run_at: new Date().toISOString() })
       .eq('id', request.id);
     throw error;
   }
