@@ -301,6 +301,35 @@ export interface GrowthSnapshot {
   created_at?: string | null;
 }
 
+export interface OfferAttributionCreatorRow {
+  creatorId: string;
+  creatorName: string;
+  creatorHandle: string;
+  rawRedemptions: number;
+  dedupedRedemptions: number;
+  nearbyRedemptions: number;
+}
+
+export interface OfferAttributionDayRow {
+  date: string;
+  rawRedemptions: number;
+  dedupedRedemptions: number;
+  nearbyRedemptions: number;
+}
+
+export interface MerchantOfferRedemptionAttribution {
+  ok: boolean;
+  rawRedemptions: number;
+  dedupedRedemptions: number;
+  nearbyRedemptions: number;
+  locationCapturedRedemptions: number;
+  windowDays: number;
+  dedupeMinutes: number;
+  nearbyRadiusMeters: number;
+  byCreator: OfferAttributionCreatorRow[];
+  byDay: OfferAttributionDayRow[];
+}
+
 export interface CampaignDraft {
   id: string;
   restaurant_id: string;

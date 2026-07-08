@@ -32,6 +32,15 @@ function formatFollowers(value?: number | null): string {
   return String(value);
 }
 
+function buildCreatorVerifyUrl(campaignId: string, creatorId: string): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.thehoponapp.com';
+  const params = new URLSearchParams({
+    campaign: campaignId,
+    creator: creatorId,
+  });
+  return `${origin}/verify?${params.toString()}`;
+}
+
 export const CampaignDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t, isZh } = useMerchantLocale();
@@ -51,6 +60,7 @@ export const CampaignDetail: React.FC = () => {
   const [revisionTargetId, setRevisionTargetId] = useState<string | null>(null);
   const [revisionIsDraft, setRevisionIsDraft] = useState(false);
   const [revisionFeedback, setRevisionFeedback] = useState('');
+  const [copiedVerifyCreatorId, setCopiedVerifyCreatorId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
@@ -121,6 +131,19 @@ export const CampaignDetail: React.FC = () => {
       setToast({ msg: t.operationFailed, error: true });
     } finally {
       setNudgingId(null);
+    }
+  };
+
+  const copyVerifyLink = async (creatorId: string) => {
+    if (!campaign) return;
+    const url = buildCreatorVerifyUrl(campaign.id, creatorId);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedVerifyCreatorId(creatorId);
+      setToast({ msg: isZh ? '兑换链接已复制' : 'Verify link copied' });
+      window.setTimeout(() => setCopiedVerifyCreatorId(null), 1800);
+    } catch {
+      setToast({ msg: isZh ? '复制失败，请手动复制链接' : 'Copy failed. Please copy manually.', error: true });
     }
   };
 
@@ -409,6 +432,15 @@ export const CampaignDetail: React.FC = () => {
                       >
                         {isZh ? '沟通' : 'Chat'}
                       </Link>
+                      {creatorId && (
+                        <button
+                          type="button"
+                          onClick={() => copyVerifyLink(creatorId)}
+                          className="px-3 py-1.5 border-2 border-black font-mono text-xs uppercase hover:bg-hopon-grey"
+                        >
+                          {copiedVerifyCreatorId === creatorId ? (isZh ? '已复制' : 'Copied') : (isZh ? '复制兑换链接' : 'Copy verify link')}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => openPreview(app, draft, deliv)}

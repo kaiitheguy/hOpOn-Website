@@ -196,8 +196,22 @@ const normalizeHandle = (handle?: string | null): string =>
 
 const TEST_CAMPAIGN_PATTERN = /test|demo|sandbox|internal|\bqa\b|测试|測試/i;
 const VERIFY_AVATAR_CACHE_KEY = 'hopon:verify-avatar-cache:v1';
+const VERIFY_VISITOR_STORAGE_KEY = 'hopon:verify-anon-visitor:v1';
 
 type VerifyAvatarCache = Record<string, { url: string; expiresAt: string }>;
+
+export type HoponAnonymousVisitor = {
+  id: string;
+  scope: 'daily';
+  expiresAt: string;
+};
+
+export type HoponRedemptionLocation = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number | null;
+  capturedAt: string;
+};
 
 function readVerifyAvatarCache(): VerifyAvatarCache {
   if (typeof window === 'undefined') return {};
@@ -268,6 +282,64 @@ function createClientRedemptionId(): string {
         : Math.floor(Math.random() * 256);
     return (Number(char) ^ (randomValue & (15 >> (Number(char) / 4)))).toString(16);
   });
+}
+
+function localDateKey(date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function nextLocalMidnightIso(): string {
+  const value = new Date();
+  value.setHours(24, 0, 0, 0);
+  return value.toISOString();
+}
+
+function isFreshVisitor(value: unknown, dateKey: string): value is HoponAnonymousVisitor & { dateKey: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const row = value as Record<string, unknown>;
+  return (
+    typeof row.id === 'string' &&
+    row.id.length > 8 &&
+    row.scope === 'daily' &&
+    row.dateKey === dateKey &&
+    typeof row.expiresAt === 'string' &&
+    Date.parse(row.expiresAt) > Date.now()
+  );
+}
+
+export function getOrCreateVerifyAnonymousVisitor(): HoponAnonymousVisitor {
+  const dateKey = localDateKey();
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(VERIFY_VISITOR_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (isFreshVisitor(parsed, dateKey)) {
+        return { id: parsed.id, scope: 'daily', expiresAt: parsed.expiresAt };
+      }
+    } catch {
+      // Non-critical: create a fresh visitor for this page.
+    }
+  }
+
+  const visitor: HoponAnonymousVisitor & { dateKey: string } = {
+    id: `daily:${dateKey}:${createClientRedemptionId()}`,
+    scope: 'daily',
+    expiresAt: nextLocalMidnightIso(),
+    dateKey,
+  };
+
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(VERIFY_VISITOR_STORAGE_KEY, JSON.stringify(visitor));
+    } catch {
+      // Local storage may be blocked; the in-memory value still works for this click.
+    }
+  }
+
+  return { id: visitor.id, scope: visitor.scope, expiresAt: visitor.expiresAt };
 }
 
 function isLikelyPublicOpenCampaign(campaign: {
@@ -388,8 +460,136 @@ function isMissingRpcError(error: { code?: string; message?: string } | null): b
   return (
     error.code === '42883' ||
     error.code === 'PGRST202' ||
-    /function .*list_public_redeem_campaigns/i.test(error.message || '')
+    /function .*(list_public_redeem_campaigns|get_public_redeem_campaign_by_link)/i.test(error.message || '')
   );
+}
+
+export async function getHoponRedeemCampaignByLink(
+  campaignId: string,
+  creatorId?: string
+): Promise<HoponRedeemCampaign | null> {
+  if (!isSupabaseConfigured() || !campaignId) return null;
+
+  try {
+    const { data: functionCampaigns, error: functionError } = await getClient().functions.invoke('public-redeem-campaigns', {
+      body: {
+        campaignId,
+        creatorId: creatorId || undefined,
+      },
+    });
+
+    if (!functionError) {
+      const campaigns = normalizePublicRedeemCampaigns(functionCampaigns);
+      if (campaigns.length > 0) {
+        cacheVerifyAvatars(campaigns);
+        return applyCachedVerifyAvatars(campaigns)[0] ?? null;
+      }
+    } else {
+      console.warn('[getHoponRedeemCampaignByLink] public function failed, falling back to RPC', functionError.message);
+    }
+
+    const { data: rpcCampaigns, error: rpcError } = await getClient().rpc('get_public_redeem_campaign_by_link', {
+      p_campaign_id: campaignId,
+      p_creator_id: creatorId || null,
+    });
+
+    if (!rpcError) {
+      const campaigns = normalizePublicRedeemCampaigns(rpcCampaigns);
+      if (campaigns.length > 0) return applyCachedVerifyAvatars(campaigns)[0] ?? null;
+      return null;
+    }
+
+    if (!isMissingRpcError(rpcError)) {
+      console.warn('[getHoponRedeemCampaignByLink] direct RPC failed', rpcError.message);
+      return null;
+    }
+
+    const { data: campaign, error: campaignError } = await getClient()
+      .from('campaigns')
+      .select(`
+        id,
+        title,
+        status,
+        start_date,
+        end_date,
+        platforms,
+        restaurant_profiles!campaigns_restaurant_id_fkey (
+          name
+        )
+      `)
+      .eq('id', campaignId)
+      .eq('status', 'OPEN')
+      .maybeSingle();
+
+    if (campaignError || !campaign) {
+      if (campaignError) console.warn('[getHoponRedeemCampaignByLink] campaign query failed', campaignError.message);
+      return null;
+    }
+
+    let applicationQuery = getClient()
+      .from('applications')
+      .select(`
+        id,
+        status,
+        creator_id,
+        creator_profiles!applications_creator_id_fkey (
+          id,
+          name,
+          handle,
+          avatar,
+          tags,
+          tiktok_handle
+        )
+      `)
+      .eq('campaign_id', campaignId)
+      .eq('status', 'ACCEPTED')
+      .limit(50);
+
+    if (creatorId) {
+      applicationQuery = applicationQuery.eq('creator_id', creatorId);
+    }
+
+    const { data: applicationRows, error: appError } = await applicationQuery;
+    if (appError) {
+      console.warn('[getHoponRedeemCampaignByLink] creator query failed', appError.message);
+      return null;
+    }
+
+    const creators = (applicationRows || [])
+      .map((row: any): HoponRedeemCreator | null => {
+        const creator = row.creator_profiles;
+        if (!creator?.id) return null;
+        return {
+          id: creator.id,
+          name: creator.name || creator.handle || 'Creator',
+          handle: normalizeHandle(creator.handle || creator.tiktok_handle),
+          avatarUrl: creator.avatar || null,
+          platform: platformLabel((campaign.platforms || [])[0]),
+          label: creatorLabel(creator.tags),
+        };
+      })
+      .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
+
+    if (creators.length === 0) return null;
+    const restaurantProfile = Array.isArray(campaign.restaurant_profiles)
+      ? campaign.restaurant_profiles[0]
+      : campaign.restaurant_profiles;
+
+    return {
+      id: campaign.id,
+      title: campaign.title,
+      merchantName: restaurantProfile?.name || 'Hopon merchant',
+      status: campaign.status,
+      offerType: 'percent_off',
+      offerValue: 5,
+      startDate: campaign.start_date,
+      endDate: campaign.end_date,
+      creators,
+    };
+  } catch (error) {
+    console.warn('[getHoponRedeemCampaignByLink] unexpected error', error);
+    return null;
+  }
 }
 
 export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampaign[]> {
@@ -473,7 +673,7 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
             `)
             .eq('campaign_id', campaign.id)
             .eq('status', 'ACCEPTED')
-            .limit(8);
+            .limit(50);
 
           if (appError) {
             console.warn('[listActiveHoponRedeemCampaigns] creator query failed', appError.message);
@@ -526,6 +726,10 @@ export function trackHoponOfferRedeem(payload: {
   creatorHandle: string;
   offerType: 'percent_off';
   offerValue: number;
+  anonymousVisitor?: HoponAnonymousVisitor;
+  location?: HoponRedemptionLocation | null;
+  sourceUrl?: string;
+  directLink?: boolean;
 }): void {
   const clientRedemptionId = createClientRedemptionId();
 
@@ -533,20 +737,55 @@ export function trackHoponOfferRedeem(payload: {
     campaign_title: payload.campaignTitle,
     merchant_name: payload.merchantName,
     creator_handle: payload.creatorHandle,
+    verify_url: payload.sourceUrl ?? null,
+    verify_access_mode: payload.directLink ? 'direct_link' : 'public_list',
+  };
+
+  const extendedArgs = {
+    p_campaign_id: payload.campaignId,
+    p_creator_id: payload.creatorId,
+    p_client_redemption_id: clientRedemptionId,
+    p_offer_type: payload.offerType,
+    p_offer_value: payload.offerValue,
+    p_metadata: metadata,
+    p_anonymous_visitor_id: payload.anonymousVisitor?.id ?? null,
+    p_visitor_id_scope: payload.anonymousVisitor?.scope ?? 'daily',
+    p_visitor_id_expires_at: payload.anonymousVisitor?.expiresAt ?? null,
+    p_location_latitude: payload.location?.latitude ?? null,
+    p_location_longitude: payload.location?.longitude ?? null,
+    p_location_accuracy_meters: payload.location?.accuracyMeters ?? null,
+    p_location_captured_at: payload.location?.capturedAt ?? null,
+  };
+
+  const legacyArgs = {
+    p_campaign_id: payload.campaignId,
+    p_creator_id: payload.creatorId,
+    p_client_redemption_id: clientRedemptionId,
+    p_offer_type: payload.offerType,
+    p_offer_value: payload.offerValue,
+    p_metadata: metadata,
+  };
+
+  const shouldRetryLegacy = (error: { code?: string; message?: string } | null): boolean => {
+    if (!error) return false;
+    const message = error.message || '';
+    return error.code === 'PGRST202' || error.code === '42883' || /record_public_offer_redemption/i.test(message);
   };
 
   try {
     getClient()
-      .rpc('record_public_offer_redemption', {
-        p_campaign_id: payload.campaignId,
-        p_creator_id: payload.creatorId,
-        p_client_redemption_id: clientRedemptionId,
-        p_offer_type: payload.offerType,
-        p_offer_value: payload.offerValue,
-        p_metadata: metadata,
-      })
+      .rpc('record_public_offer_redemption', extendedArgs)
       .then(({ error }) => {
         if (!error) return;
+        if (shouldRetryLegacy(error)) {
+          getClient()
+            .rpc('record_public_offer_redemption', legacyArgs)
+            .then(({ error: legacyError }) => {
+              if (!legacyError) return;
+              console.warn('[record_public_offer_redemption legacy]', legacyError.message);
+            });
+          return;
+        }
         console.warn('[record_public_offer_redemption]', error.message);
       });
   } catch (error) {

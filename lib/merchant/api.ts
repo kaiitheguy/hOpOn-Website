@@ -23,6 +23,8 @@ import type {
   CampaignDraft,
   GeneratedPage,
   SeoOpportunity,
+  MerchantOfferRedemptionAttribution,
+  OfferAttributionDayRow,
   ApplicationChatContext,
   ApplicationMessage,
   ApplicationScheduleProposal,
@@ -47,6 +49,103 @@ const USER_ID_MAP: Record<string, string> = {
   r_005: '00000000-0000-0000-0000-000000000105',
   r_006: '00000000-0000-0000-0000-000000000106',
 };
+
+const DEFAULT_REDEMPTION_DEDUPE_MINUTES = 30;
+
+function buildEmptyRedemptionTrend(days: number): OfferAttributionDayRow[] {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - days + 1);
+  start.setHours(0, 0, 0, 0);
+
+  const rows: OfferAttributionDayRow[] = [];
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    rows.push({
+      date: d.toISOString().slice(0, 10),
+      rawRedemptions: 0,
+      dedupedRedemptions: 0,
+      nearbyRedemptions: 0,
+    });
+  }
+  return rows;
+}
+
+function emptyRedemptionAttribution(days = 30): MerchantOfferRedemptionAttribution {
+  return {
+    ok: false,
+    rawRedemptions: 0,
+    dedupedRedemptions: 0,
+    nearbyRedemptions: 0,
+    locationCapturedRedemptions: 0,
+    windowDays: days,
+    dedupeMinutes: DEFAULT_REDEMPTION_DEDUPE_MINUTES,
+    nearbyRadiusMeters: 200,
+    byCreator: [],
+    byDay: buildEmptyRedemptionTrend(days),
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function asNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeRedemptionAttribution(raw: unknown, days: number): MerchantOfferRedemptionAttribution {
+  const row = asRecord(raw);
+  if (row.ok !== true) return emptyRedemptionAttribution(days);
+
+  const byCreator = Array.isArray(row.byCreator)
+    ? row.byCreator.map((item) => {
+        const creator = asRecord(item);
+        return {
+          creatorId: asString(creator.creatorId),
+          creatorName: asString(creator.creatorName, 'Creator'),
+          creatorHandle: asString(creator.creatorHandle, 'creator'),
+          rawRedemptions: asNumber(creator.rawRedemptions),
+          dedupedRedemptions: asNumber(creator.dedupedRedemptions),
+          nearbyRedemptions: asNumber(creator.nearbyRedemptions),
+        };
+      }).filter((item) => item.creatorId)
+    : [];
+
+  const byDay = Array.isArray(row.byDay)
+    ? row.byDay.map((item) => {
+        const day = asRecord(item);
+        return {
+          date: asString(day.date),
+          rawRedemptions: asNumber(day.rawRedemptions),
+          dedupedRedemptions: asNumber(day.dedupedRedemptions),
+          nearbyRedemptions: asNumber(day.nearbyRedemptions),
+        };
+      }).filter((item) => item.date)
+    : buildEmptyRedemptionTrend(days);
+
+  return {
+    ok: true,
+    rawRedemptions: asNumber(row.rawRedemptions),
+    dedupedRedemptions: asNumber(row.dedupedRedemptions),
+    nearbyRedemptions: asNumber(row.nearbyRedemptions),
+    locationCapturedRedemptions: asNumber(row.locationCapturedRedemptions),
+    windowDays: asNumber(row.windowDays) || days,
+    dedupeMinutes: asNumber(row.dedupeMinutes) || DEFAULT_REDEMPTION_DEDUPE_MINUTES,
+    nearbyRadiusMeters: asNumber(row.nearbyRadiusMeters) || 200,
+    byCreator,
+    byDay,
+  };
+}
+
+function isMissingAttributionRpcError(error: unknown): boolean {
+  const row = asRecord(error);
+  const message = `${row.message ?? ''} ${row.details ?? ''}`.toLowerCase();
+  return row.code === '42883' || row.code === 'PGRST202' || message.includes('get_merchant_offer_redemption_attribution');
+}
 
 function getSupabaseUserId(id: string): string {
   return USER_ID_MAP[id] || id;
@@ -358,6 +457,27 @@ export async function listCampaignSourcingRequests(campaignId: string): Promise<
       return request;
     })
     .filter((request) => request.candidates.length > 0 || ['running', 'reviewing', 'merchant_review', 'outreach'].includes(request.status));
+}
+
+export async function getMerchantOfferRedemptionAttribution(
+  restaurantId: string,
+  days = 30
+): Promise<MerchantOfferRedemptionAttribution> {
+  const uuidId = getSupabaseUserId(restaurantId);
+  const { data, error } = await supabase.rpc('get_merchant_offer_redemption_attribution', {
+    p_restaurant_id: uuidId,
+    p_days: days,
+    p_dedupe_minutes: DEFAULT_REDEMPTION_DEDUPE_MINUTES,
+  });
+
+  if (error) {
+    if (!isMissingAttributionRpcError(error)) {
+      console.error('[getMerchantOfferRedemptionAttribution]', error);
+    }
+    return emptyRedemptionAttribution(days);
+  }
+
+  return normalizeRedemptionAttribution(data, days);
 }
 
 /** Audit §2.1 + §9: createCampaign — match Blanc payload (type, budget, start_date, end_date, location, requirements). */

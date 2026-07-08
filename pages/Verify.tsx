@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, ChevronLeft, Loader2, ReceiptText, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandHeader';
 import {
   fallbackRedeemCampaigns,
+  getHoponRedeemCampaignByLink,
+  getOrCreateVerifyAnonymousVisitor,
   isSupabaseConfigured,
   listActiveHoponRedeemCampaigns,
   trackHoponOfferRedeem,
+  type HoponRedemptionLocation,
   type HoponRedeemCampaign,
   type HoponRedeemCreator,
 } from '../lib/supabaseClient';
@@ -35,6 +39,31 @@ function ProgressDots({ step }: { step: RedeemStep }) {
       ))}
     </div>
   );
+}
+
+function getBrowserRedemptionLocation(): Promise<HoponRedemptionLocation | null> {
+  if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    return Promise.resolve(null);
+  }
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          capturedAt: new Date().toISOString(),
+        });
+      },
+      () => resolve(null),
+      {
+        enableHighAccuracy: true,
+        timeout: 4000,
+        maximumAge: 60_000,
+      }
+    );
+  });
 }
 
 function CampaignCard({
@@ -111,6 +140,7 @@ function CreatorCard({
 }
 
 export const Verify: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [campaigns, setCampaigns] = useState<HoponRedeemCampaign[]>(fallbackRedeemCampaigns);
   const [loading, setLoading] = useState(true);
   const [usingDemo, setUsingDemo] = useState(false);
@@ -118,12 +148,33 @@ export const Verify: React.FC = () => {
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [selectedCreatorId, setSelectedCreatorId] = useState('');
   const [redeemReady, setRedeemReady] = useState(false);
+  const [initialSelectionApplied, setInitialSelectionApplied] = useState(false);
+
+  const requestedCampaignId = searchParams.get('campaign') ?? searchParams.get('campaignId') ?? searchParams.get('c') ?? '';
+  const requestedCreatorId = searchParams.get('creator') ?? searchParams.get('creatorId') ?? searchParams.get('cr') ?? '';
+  const forceDemo = searchParams.get('demo') === '1' || searchParams.get('demo') === 'true';
 
   useEffect(() => {
     let mounted = true;
     async function loadCampaigns() {
       setLoading(true);
+      if (forceDemo) {
+        setCampaigns(fallbackRedeemCampaigns);
+        setUsingDemo(true);
+        setLoading(false);
+        return;
+      }
       const configured = isSupabaseConfigured();
+      if (configured && requestedCampaignId) {
+        const directCampaign = await getHoponRedeemCampaignByLink(requestedCampaignId, requestedCreatorId || undefined);
+        if (!mounted) return;
+        if (directCampaign) {
+          setCampaigns([directCampaign]);
+          setUsingDemo(false);
+          setLoading(false);
+          return;
+        }
+      }
       const liveCampaigns = await listActiveHoponRedeemCampaigns();
       if (!mounted) return;
       if (liveCampaigns.length > 0) {
@@ -142,7 +193,7 @@ export const Verify: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [forceDemo, requestedCampaignId, requestedCreatorId]);
 
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || null,
@@ -153,6 +204,34 @@ export const Verify: React.FC = () => {
     () => selectedCampaign?.creators.find((creator) => creator.id === selectedCreatorId) || null,
     [selectedCampaign, selectedCreatorId]
   );
+
+  useEffect(() => {
+    if (loading || initialSelectionApplied) return;
+    if (!requestedCampaignId) {
+      setInitialSelectionApplied(true);
+      return;
+    }
+
+    const campaign = campaigns.find((item) => item.id === requestedCampaignId);
+    if (!campaign) {
+      setInitialSelectionApplied(true);
+      return;
+    }
+
+    setSelectedCampaignId(campaign.id);
+    if (requestedCreatorId) {
+      const creator = campaign.creators.find((item) => item.id === requestedCreatorId);
+      if (creator) {
+        setSelectedCreatorId(creator.id);
+        setStep('offer');
+      } else {
+        setStep('creator');
+      }
+    } else {
+      setStep('creator');
+    }
+    setInitialSelectionApplied(true);
+  }, [campaigns, initialSelectionApplied, loading, requestedCampaignId, requestedCreatorId]);
 
   const chooseCampaign = (campaign: HoponRedeemCampaign) => {
     setSelectedCampaignId(campaign.id);
@@ -171,15 +250,25 @@ export const Verify: React.FC = () => {
     if (!selectedCampaign || !selectedCreator) return;
     setRedeemReady(true);
     if (!usingDemo && isSupabaseConfigured()) {
-      trackHoponOfferRedeem({
-        campaignId: selectedCampaign.id,
-        campaignTitle: selectedCampaign.title,
-        merchantName: selectedCampaign.merchantName,
-        creatorId: selectedCreator.id,
-        creatorHandle: selectedCreator.handle,
-        offerType: selectedCampaign.offerType,
-        offerValue: selectedCampaign.offerValue,
-      });
+      void (async () => {
+        const [anonymousVisitor, location] = await Promise.all([
+          Promise.resolve(getOrCreateVerifyAnonymousVisitor()),
+          getBrowserRedemptionLocation(),
+        ]);
+        trackHoponOfferRedeem({
+          campaignId: selectedCampaign.id,
+          campaignTitle: selectedCampaign.title,
+          merchantName: selectedCampaign.merchantName,
+          creatorId: selectedCreator.id,
+          creatorHandle: selectedCreator.handle,
+          offerType: selectedCampaign.offerType,
+          offerValue: selectedCampaign.offerValue,
+          anonymousVisitor,
+          location,
+          sourceUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+          directLink: Boolean(requestedCampaignId),
+        });
+      })();
     }
   };
 
