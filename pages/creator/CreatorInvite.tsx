@@ -43,6 +43,7 @@ type InvitePreview = {
 };
 
 const APP_STORE_URL = 'https://apps.apple.com/us/app/hopon-%E4%B8%B2%E5%BA%97/id6757418054';
+const CONTACT_EMAIL = 'contact@thehoponapp.com';
 
 function normalizeHandle(value?: string | null): string {
   return String(value ?? '').trim().replace(/^@+/, '');
@@ -69,6 +70,26 @@ function creatorFacingFitReasons(preview: InvitePreview | null): string[] {
     ].slice(0, 4);
   }
   return publicReasons.slice(0, 4);
+}
+
+async function inviteErrorMessage(error: unknown, fallback: string): Promise<string> {
+  const err = error as { message?: string; context?: Response } | null;
+  const context = err?.context;
+  if (context instanceof Response) {
+    try {
+      const payload = await context.clone().json();
+      if (payload?.error) return String(payload.error);
+      if (payload?.message) return String(payload.message);
+    } catch {
+      try {
+        const text = await context.clone().text();
+        if (text.trim()) return text.trim();
+      } catch {
+        // Ignore and use Supabase's fallback message.
+      }
+    }
+  }
+  return err?.message || fallback;
 }
 
 export const CreatorInvite: React.FC = () => {
@@ -117,7 +138,10 @@ export const CreatorInvite: React.FC = () => {
       body: { action: 'claim', token },
     });
     if (error || !data?.ok) {
-      setFormMessage({ text: error?.message || data?.error || 'Could not complete this invite.', error: true });
+      const message = error
+        ? await inviteErrorMessage(error, 'Could not complete this invite.')
+        : data?.error || 'Could not complete this invite.';
+      setFormMessage({ text: message, error: true });
       setClaimBusy(false);
       return;
     }
@@ -204,6 +228,15 @@ export const CreatorInvite: React.FC = () => {
   const invitedEmail = preview?.invite?.invitedEmail ?? '';
   const emailLocked = Boolean(invitedEmail);
   const canSignup = Boolean(token && (invitedEmail || email.trim()) && password && confirmPassword && !signupBusy);
+  const appStoreButton = (
+    <a
+      href={APP_STORE_URL}
+      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-hopon-red"
+    >
+      <Download className="h-4 w-4" />
+      Download on App Store
+    </a>
+  );
 
   return (
     <div className="min-h-screen bg-[#F7F2E8] text-hopon-black">
@@ -284,13 +317,7 @@ export const CreatorInvite: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                    <a
-                      href={APP_STORE_URL}
-                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-hopon-red"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download on App Store
-                    </a>
+                    {appStoreButton}
                     <a
                       href={deepLink}
                       className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-5 font-mono text-xs uppercase tracking-wider text-emerald-900 transition hover:border-emerald-500"
@@ -401,11 +428,20 @@ export const CreatorInvite: React.FC = () => {
               <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
                 <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-black">
                   <Smartphone className="h-4 w-4 text-hopon-red" />
-                  After verification
+                  Download hOpOn
                 </div>
                 <p className="text-sm leading-6 text-black/60">
-                  This page will show the App Store link after your email is verified and the invite is claimed.
+                  You can download the app now. After your email is verified, sign in with the same email to continue this campaign.
                 </p>
+                <div className="mt-4 flex flex-col gap-3">
+                  {appStoreButton}
+                  <a
+                    href={`mailto:${CONTACT_EMAIL}?subject=hOpOn creator invite help&body=Invite token: ${encodeURIComponent(token ?? '')}`}
+                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-black/10 bg-[#FAFAF7] px-4 font-mono text-xs uppercase tracking-wider text-black/60 transition hover:border-black/25"
+                  >
+                    Contact hOpOn
+                  </a>
+                </div>
               </div>
             </section>
           </div>
