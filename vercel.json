@@ -1,7 +1,11 @@
 {
   "rewrites": [
     {
-      "source": "/((?!assets/|config\\.js|favicon\\.ico).*)",
+      "source": "/config.js",
+      "destination": "/api/config"
+    },
+    {
+      "source": "/((?!assets/|api/|favicon\\.ico).*)",
       "destination": "/index.html"
     }
   ]
