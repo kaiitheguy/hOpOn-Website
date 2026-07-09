@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Compass, Plus, RefreshCcw, Search } from 'lucide-react';
+import { ArrowRight, Compass, Copy, Link as LinkIcon, Plus, RefreshCcw, Search } from 'lucide-react';
 import {
   buildSourcingSeed,
+  createDirectCreatorInvite,
   createSourcingRequestFromCampaign,
   listAdminCampaigns,
   listSourcingRequests,
 } from '../../lib/admin/api';
-import type { AdminCampaign, CampaignSourcingRequest } from '../../lib/admin/types';
+import type { AdminCampaign, CampaignSourcingCandidate, CampaignSourcingRequest } from '../../lib/admin/types';
 
 const statusClasses: Record<string, string> = {
   ready: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -31,6 +32,13 @@ export const AdminSourcing: React.FC = () => {
   const [requests, setRequests] = useState<CampaignSourcingRequest[]>([]);
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [neededCount, setNeededCount] = useState('8');
+  const [directCampaignId, setDirectCampaignId] = useState('');
+  const [directEmail, setDirectEmail] = useState('');
+  const [directPlatform, setDirectPlatform] = useState<'instagram' | 'tiktok'>('instagram');
+  const [directHandleOrUrl, setDirectHandleOrUrl] = useState('');
+  const [directDisplayName, setDirectDisplayName] = useState('');
+  const [directResult, setDirectResult] = useState<CampaignSourcingCandidate | null>(null);
+  const [copied, setCopied] = useState<'link' | 'dm' | null>(null);
   const [loading, setLoading] = useState(true);
   const [setupMissing, setSetupMissing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,12 +55,15 @@ export const AdminSourcing: React.FC = () => {
       if (!selectedCampaignId && campaignList[0]) {
         setSelectedCampaignId(campaignList[0].id);
       }
+      if (!directCampaignId && campaignList[0]) {
+        setDirectCampaignId(campaignList[0].id);
+      }
     } catch (error) {
       setMessage({ text: error instanceof Error ? error.message : 'Could not load sourcing workspace', error: true });
     } finally {
       setLoading(false);
     }
-  }, [selectedCampaignId]);
+  }, [directCampaignId, selectedCampaignId]);
 
   useEffect(() => {
     load();
@@ -86,6 +97,41 @@ export const AdminSourcing: React.FC = () => {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleCreateDirectInvite = async () => {
+    if (!directCampaignId || setupMissing || busy) return;
+    setBusy(true);
+    setMessage(null);
+    setDirectResult(null);
+    setCopied(null);
+    try {
+      const result = await createDirectCreatorInvite({
+        campaignId: directCampaignId,
+        email: directEmail,
+        platform: directPlatform,
+        handleOrUrl: directHandleOrUrl,
+        displayName: directDisplayName,
+      });
+      setDirectResult(result.candidate);
+      setMessage({ text: 'Direct creator invite generated.' });
+      setDirectEmail('');
+      setDirectHandleOrUrl('');
+      setDirectDisplayName('');
+      await load();
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : 'Could not generate direct invite', error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyDirectValue = async (kind: 'link' | 'dm') => {
+    const value = kind === 'link' ? directResult?.inviteUrl : directResult?.dmDraft;
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1500);
   };
 
   return (
@@ -197,6 +243,137 @@ export const AdminSourcing: React.FC = () => {
               </div>
             ) : (
               <p className="text-sm text-black/45">Select a campaign to preview Growth OS filters.</p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="admin-card p-5">
+        <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-mono text-xs uppercase tracking-[0.18em] text-emerald-800">
+              <LinkIcon className="h-4 w-4" />
+              Direct Creator Invite
+            </div>
+            <h2 className="font-display text-2xl font-bold tracking-tight">Invite a creator by email</h2>
+            <p className="mt-1 text-sm leading-6 text-black/55">
+              For creators not yet on hOpOn. They verify email, set a password, download the app, and see this campaign already accepted.
+            </p>
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Campaign</label>
+                <select
+                  value={directCampaignId}
+                  onChange={(event) => setDirectCampaignId(event.target.value)}
+                  className="admin-input h-12 w-full px-3 text-sm"
+                >
+                  {campaigns.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.restaurant?.name ?? 'Unknown'} · {campaign.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Creator email</label>
+                  <input
+                    type="email"
+                    value={directEmail}
+                    onChange={(event) => setDirectEmail(event.target.value)}
+                    placeholder="creator@example.com"
+                    className="admin-input h-12 w-full px-3 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Platform</label>
+                  <select
+                    value={directPlatform}
+                    onChange={(event) => setDirectPlatform(event.target.value === 'tiktok' ? 'tiktok' : 'instagram')}
+                    className="admin-input h-12 w-full px-3 text-sm"
+                  >
+                    <option value="instagram">Instagram</option>
+                    <option value="tiktok">TikTok</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Handle or profile URL</label>
+                <input
+                  type="text"
+                  value={directHandleOrUrl}
+                  onChange={(event) => setDirectHandleOrUrl(event.target.value)}
+                  placeholder={directPlatform === 'instagram' ? '@creator or instagram.com/creator' : '@creator or tiktok.com/@creator'}
+                  className="admin-input h-12 w-full px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-black/50">Display name optional</label>
+                <input
+                  type="text"
+                  value={directDisplayName}
+                  onChange={(event) => setDirectDisplayName(event.target.value)}
+                  placeholder="Shown internally on candidate cards"
+                  className="admin-input h-12 w-full px-3 text-sm"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={!directCampaignId || !directEmail.trim() || !directHandleOrUrl.trim() || setupMissing || busy}
+                onClick={handleCreateDirectInvite}
+                className="admin-button inline-flex h-12 w-full items-center justify-center gap-2 bg-hopon-black px-4 font-display text-sm font-bold uppercase tracking-wider text-white disabled:opacity-40"
+              >
+                <Plus className="h-4 w-4" />
+                Generate Invite Link
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-black/10 bg-[#FAFAF7] p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display text-xl font-bold tracking-tight">Generated invite</h3>
+                <p className="mt-1 text-sm text-black/45">Copy this into hOpOn official outreach.</p>
+              </div>
+              <LinkIcon className="h-5 w-5 text-hopon-red" />
+            </div>
+            {directResult ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/40">Invite URL</div>
+                  <p className="mt-2 break-all text-sm leading-6 text-black/65">{directResult.inviteUrl}</p>
+                  <button
+                    type="button"
+                    onClick={() => copyDirectValue('link')}
+                    className="mt-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-hopon-red"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copied === 'link' ? 'Copied' : 'Copy link'}
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-black/10 bg-white p-4">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/40">DM draft</div>
+                    <button
+                      type="button"
+                      onClick={() => copyDirectValue('dm')}
+                      className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-hopon-red"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                      {copied === 'dm' ? 'Copied' : 'Copy DM'}
+                    </button>
+                  </div>
+                  <pre className="max-h-56 overflow-auto whitespace-pre-wrap text-sm leading-6 text-black/65">{directResult.dmDraft}</pre>
+                </div>
+                <Link to={`/admin/sourcing/${directResult.sourcingRequestId}`} className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-hopon-red hover:underline">
+                  Open sourcing request
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-black/15 bg-white p-5 text-sm leading-6 text-black/45">
+                No direct invite generated yet. The result will include a private invite URL and a DM draft.
+              </div>
             )}
           </div>
         </div>

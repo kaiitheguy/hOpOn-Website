@@ -59,6 +59,13 @@ export const AuthCallback: React.FC = () => {
           }
           const { data: { user }, error: userError } = await supabase.auth.getUser();
           if (userError) throw userError;
+          const creatorInviteToken =
+            getSearchParam('creator_invite_token') ||
+            (typeof user?.user_metadata?.creator_invite_token === 'string' ? user.user_metadata.creator_invite_token : '');
+          if (creatorInviteToken) {
+            navigate(`/creator/invite/${encodeURIComponent(creatorInviteToken)}?verified=1`, { replace: true });
+            return;
+          }
           const merchantSignupProfile = readMerchantSignupProfile(user?.user_metadata);
           if (user && merchantSignupProfile) {
             await completeMerchantSignupProfile({

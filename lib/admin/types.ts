@@ -94,6 +94,9 @@ export interface CampaignSourcingInvite {
   dmDraft?: string | null;
   inviteUrl?: string | null;
   status?: SourcingInviteStatus | null;
+  invitedEmail?: string | null;
+  inviteSource?: 'growth_os' | 'manual_admin' | string | null;
+  registeredAt?: string | null;
 }
 
 export interface CampaignSourcingCandidate {
@@ -116,6 +119,9 @@ export interface CampaignSourcingCandidate {
   dmDraft?: string | null;
   inviteUrl?: string | null;
   inviteStatus?: SourcingInviteStatus | null;
+  invitedEmail?: string | null;
+  inviteSource?: 'growth_os' | 'manual_admin' | string | null;
+  registeredAt?: string | null;
   merchantVisible: boolean;
   convertedCreatorUserId?: string | null;
   createdAt?: string | null;
@@ -192,4 +198,18 @@ export interface SourcingCreateDraft {
   campaignId: string;
   neededCreatorCount?: number;
   notes?: string;
+}
+
+export interface DirectCreatorInviteDraft {
+  campaignId: string;
+  email: string;
+  platform: 'instagram' | 'tiktok';
+  handleOrUrl: string;
+  displayName?: string;
+  notes?: string;
+}
+
+export interface DirectCreatorInviteResult {
+  request: CampaignSourcingRequest;
+  candidate: CampaignSourcingCandidate;
 }

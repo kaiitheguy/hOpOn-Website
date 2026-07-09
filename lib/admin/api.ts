@@ -7,6 +7,8 @@ import type {
   AdminSessionState,
   CampaignSourcingCandidate,
   CampaignSourcingRequest,
+  DirectCreatorInviteDraft,
+  DirectCreatorInviteResult,
   DiscoveryFilters,
   GrowthDiscoveryRunInput,
   GrowthDiscoveryRunResult,
@@ -17,7 +19,16 @@ import type {
 
 type DbError = { code?: string; message?: string; details?: string | null };
 type JsonRecord = Record<string, unknown>;
-type CandidateInviteRow = { candidate_id?: string | null; invite_token?: string | null; dm_draft?: string | null; invite_url?: string | null; status?: string | null };
+type CandidateInviteRow = {
+  candidate_id?: string | null;
+  invite_token?: string | null;
+  dm_draft?: string | null;
+  invite_url?: string | null;
+  status?: string | null;
+  invited_email?: string | null;
+  invite_source?: string | null;
+  registered_at?: string | null;
+};
 type CandidateInviteSeed = {
   candidateId: string;
   lead: GrowthOsLead;
@@ -29,6 +40,8 @@ const CREATOR_INVITE_BASE_URL = `${HOPON_WEB_BASE_URL}/creator/invite`;
 const CREATOR_INVITE_URL_PATTERN = /https?:\/\/(?:localhost|127\.0\.0\.1|www\.thehoponapp\.com|thehoponapp\.com)(?::\d+)?\/creator\/invite\/([^/?#\s]+)/gi;
 const SOURCING_RUNNING_STALE_MS = 5 * 60 * 1000;
 const MAX_SOURCING_RUN_ATTEMPTS = 3;
+const SOURCING_REQUEST_WITH_CAMPAIGN_SELECT =
+  '*,campaigns(id,restaurant_id,title,description,status,type,budget,location,start_date,end_date,platforms,created_at,restaurant_profiles(id,name,location,category,city_display,cuisine_tags,avatar,is_official))';
 
 const SOURCING_CANDIDATE_SELECT = [
   'id',
@@ -51,13 +64,20 @@ const SOURCING_CANDIDATE_SELECT = [
   'converted_creator_user_id',
   'created_at',
   'updated_at',
-  'campaign_sourcing_invites(candidate_id,invite_token,dm_draft,invite_url,status)',
+  'campaign_sourcing_invites(candidate_id,invite_token,dm_draft,invite_url,status,invited_email,invite_source,registered_at)',
 ].join(',');
 
 export function isMissingRelationError(error: unknown): boolean {
   const e = error as DbError | null;
   const message = `${e?.message ?? ''} ${e?.details ?? ''}`.toLowerCase();
-  return e?.code === '42P01' || e?.code === 'PGRST205' || message.includes('does not exist') || message.includes('schema cache');
+  return (
+    e?.code === '42P01' ||
+    e?.code === '42703' ||
+    e?.code === 'PGRST204' ||
+    e?.code === 'PGRST205' ||
+    message.includes('does not exist') ||
+    message.includes('schema cache')
+  );
 }
 
 function asArray(value: unknown): string[] {
@@ -71,6 +91,30 @@ function asJsonRecord(value: unknown): JsonRecord {
 function normalizeHandle(handle?: string | null): string | null {
   const value = String(handle ?? '').trim().replace(/^@+/, '');
   return value || null;
+}
+
+function normalizeEmail(email?: string | null): string | null {
+  const value = String(email ?? '').trim().toLowerCase();
+  return value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? value : null;
+}
+
+function parseSocialInput(platform: 'instagram' | 'tiktok', input: string): { handle: string | null; profileUrl: string | null } {
+  const value = input.trim();
+  if (!value) return { handle: null, profileUrl: null };
+  if (/^https?:\/\//i.test(value)) {
+    try {
+      const url = new URL(value);
+      const segments = url.pathname.split('/').map((part) => part.trim()).filter(Boolean);
+      const handle =
+        platform === 'instagram'
+          ? segments.find((part) => !['p', 'reel', 'tv', 'stories'].includes(part.toLowerCase())) ?? null
+          : segments.find((part) => part.startsWith('@'))?.slice(1) ?? segments.find(Boolean) ?? null;
+      return { handle: normalizeHandle(handle), profileUrl: value };
+    } catch {
+      return { handle: normalizeHandle(value), profileUrl: null };
+    }
+  }
+  return { handle: normalizeHandle(value), profileUrl: null };
 }
 
 function profileUrlFor(platform: string, handle?: string | null, existingUrl?: string | null): string | null {
@@ -205,6 +249,9 @@ function mapCandidate(row: any, invite = inviteFromCandidateRow(row)): CampaignS
     dmDraft: normalizeInviteText(invite?.dm_draft),
     inviteUrl,
     inviteStatus: invite?.status ?? null,
+    invitedEmail: invite?.invited_email ?? null,
+    inviteSource: invite?.invite_source ?? null,
+    registeredAt: invite?.registered_at ?? null,
     merchantVisible: row.merchant_visible === true,
     convertedCreatorUserId: row.converted_creator_user_id ?? null,
     createdAt: row.created_at ?? null,
@@ -521,6 +568,117 @@ export async function createSourcingRequestFromCampaign(input: SourcingCreateDra
   return mapRequest(data);
 }
 
+async function getOrCreateDirectInviteRequest(campaign: AdminCampaign, adminUserId: string): Promise<CampaignSourcingRequest> {
+  const seed = buildSourcingSeed(campaign);
+  const { data: existing, error: existingError } = await supabase
+    .from('campaign_sourcing_requests')
+    .select(SOURCING_REQUEST_WITH_CAMPAIGN_SELECT)
+    .eq('campaign_id', campaign.id)
+    .contains('filters', { directInvite: true })
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existingError && !isMissingRelationError(existingError)) throw existingError;
+  if (existing) return mapRequest(existing);
+
+  const { data, error } = await supabase
+    .from('campaign_sourcing_requests')
+    .insert({
+      campaign_id: campaign.id,
+      restaurant_id: campaign.restaurantId,
+      requested_by: adminUserId,
+      source: 'admin',
+      status: 'outreach',
+      search_brief: `Manual direct creator invites for ${campaign.restaurant?.name ?? 'merchant'} · ${campaign.title}`,
+      generated_tags: seed.tags,
+      filters: { ...seed.filters, directInvite: true },
+      platforms: seed.platforms,
+      needed_creator_count: 1,
+      notes: 'Direct creator invites generated manually by admin.',
+    })
+    .select(SOURCING_REQUEST_WITH_CAMPAIGN_SELECT)
+    .single();
+  if (error) throw error;
+  return mapRequest(data);
+}
+
+export async function createDirectCreatorInvite(input: DirectCreatorInviteDraft): Promise<DirectCreatorInviteResult> {
+  const email = normalizeEmail(input.email);
+  if (!email) throw new Error('Enter a valid creator email.');
+  const platform = input.platform === 'tiktok' ? 'tiktok' : 'instagram';
+  const social = parseSocialInput(platform, input.handleOrUrl);
+  if (!social.handle && !social.profileUrl) throw new Error('Enter an Instagram/TikTok handle or profile URL.');
+
+  const campaigns = await listAdminCampaigns(120);
+  const campaign = campaigns.find((item) => item.id === input.campaignId);
+  if (!campaign) throw new Error('Campaign not found');
+  if (String(campaign.status).toUpperCase() !== 'OPEN') {
+    throw new Error('Direct invites can only be generated for open campaigns.');
+  }
+  const state = await getAdminSessionState();
+  if (!state.userId || state.reason !== 'ready') throw new Error('Admin session required');
+
+  const request = await getOrCreateDirectInviteRequest(campaign, state.userId);
+  const displayName = input.displayName?.trim() || social.handle || email.split('@')[0];
+  const profileUrl = social.profileUrl || profileUrlFor(platform, social.handle);
+  const { data: candidateRow, error: candidateError } = await supabase
+    .from('campaign_sourcing_candidates')
+    .insert({
+      sourcing_request_id: request.id,
+      campaign_id: request.campaignId,
+      restaurant_id: request.restaurantId,
+      growth_os_lead_id: null,
+      platform,
+      handle: social.handle,
+      profile_url: profileUrl,
+      display_name: displayName,
+      followers: null,
+      score: null,
+      fit_reasons: [
+        'The hOpOn team selected you for this specific local business campaign.',
+        `${platform === 'instagram' ? 'Instagram' : 'TikTok'} profile will be added to your creator account during onboarding.`,
+        'After email verification, this campaign will appear as accepted in the hOpOn app.',
+      ],
+      concerns: [],
+      admin_status: 'shortlisted',
+      merchant_status: 'hidden',
+      outreach_status: 'drafted',
+      merchant_visible: false,
+    })
+    .select('id')
+    .single();
+  if (candidateError) throw candidateError;
+
+  const inviteToken = generateInviteToken();
+  const inviteUrl = inviteUrlForToken(inviteToken);
+  const dmDraft = generateDirectInviteDmDraft(request, input, inviteUrl);
+  const { error: inviteError } = await supabase
+    .from('campaign_sourcing_invites')
+    .insert({
+      candidate_id: candidateRow.id,
+      sourcing_request_id: request.id,
+      campaign_id: request.campaignId,
+      restaurant_id: request.restaurantId,
+      dm_draft: dmDraft,
+      invite_token: inviteToken,
+      invite_url: inviteUrl,
+      status: 'drafted',
+      invited_email: email,
+      invite_source: 'manual_admin',
+      created_by_admin_id: state.userId,
+    });
+  if (inviteError) throw inviteError;
+
+  const { data: fullCandidate, error: fullCandidateError } = await supabase
+    .from('campaign_sourcing_candidates')
+    .select(SOURCING_CANDIDATE_SELECT)
+    .eq('id', candidateRow.id)
+    .single();
+  if (fullCandidateError) throw fullCandidateError;
+
+  return { request, candidate: mapCandidate(fullCandidate) };
+}
+
 function requestFilters(request: CampaignSourcingRequest): DiscoveryFilters {
   const filters = request.filters ?? {};
   const platforms = asArray(filters.platforms).filter((platform) => platform === 'instagram' || platform === 'tiktok');
@@ -725,6 +883,20 @@ function generateDmDraft(request: CampaignSourcingRequest, lead: GrowthOsLead, i
     `If you're interested, use this invite link to join the campaign flow: ${inviteUrl ?? 'hOpOn creator invite link'}`,
     `Happy to send the brief before you decide.`,
   ].join('\n\n');
+}
+
+function generateDirectInviteDmDraft(request: CampaignSourcingRequest, input: DirectCreatorInviteDraft, inviteUrl: string | null): string {
+  const campaign = request.campaign;
+  const merchant = campaign?.restaurant?.name ?? 'a local hOpOn merchant';
+  const { handle } = parseSocialInput(input.platform, input.handleOrUrl);
+  return [
+    `Hi${handle ? ` @${handle}` : ''}, this is hOpOn. We help local businesses run creator campaigns with trackable store visits and redemptions.`,
+    `${merchant} would like to invite you to "${campaign?.title ?? 'a creator campaign'}".`,
+    campaign?.description ? `Campaign context: ${truncateText(campaign.description, 220)}` : null,
+    campaign?.budget ? `Collaboration / offer: ${campaign.budget}.` : `Collaboration details are shown in the campaign brief before you accept.`,
+    `Use this private invite link to set your password, verify your email, and see the accepted campaign in hOpOn: ${inviteUrl ?? 'hOpOn creator invite link'}`,
+    `Creator compensation, free experiences, product exchanges, and customer incentives are controlled by the campaign brief. hOpOn's platform subscription is separate from creator compensation.`,
+  ].filter(Boolean).join('\n\n');
 }
 
 function fitReasonsForLead(lead: GrowthOsLead, request: CampaignSourcingRequest): string[] {

@@ -85,11 +85,17 @@ const CandidateCard: React.FC<{
             <Pill tone={statusTone(candidate.adminStatus)}>{candidate.adminStatus}</Pill>
             <Pill tone={statusTone(candidate.outreachStatus)}>{candidate.outreachStatus}</Pill>
             {candidate.inviteStatus && <Pill tone={statusTone(candidate.inviteStatus)}>invite {candidate.inviteStatus}</Pill>}
+            {candidate.inviteSource === 'manual_admin' && <Pill tone="border-emerald-200 bg-emerald-50 text-emerald-800">direct invite</Pill>}
             {candidate.merchantVisible && <Pill tone="border-teal-200 bg-teal-50 text-teal-800">merchant visible</Pill>}
           </div>
           <p className="mt-2 text-sm text-black/50">
             {candidate.platform} · {formatFollowers(candidate.followers)} · score {candidate.score ?? 'n/a'}
           </p>
+          {candidate.invitedEmail ? (
+            <p className="mt-1 font-mono text-xs uppercase tracking-wider text-black/40">
+              Invite email: {candidate.invitedEmail}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2">
           {candidate.profileUrl && (

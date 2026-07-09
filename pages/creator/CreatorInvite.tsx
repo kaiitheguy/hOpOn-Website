@@ -1,9 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Instagram, ShieldCheck } from 'lucide-react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowRight, CheckCircle2, Download, Instagram, Mail, ShieldCheck, Smartphone } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { passwordPolicyError, passwordPolicyText, validatePasswordStrength } from '../../lib/passwordPolicy';
 
 type InvitePreview = {
+  invite?: {
+    status?: string | null;
+    claimed?: boolean | null;
+    applicationId?: string | null;
+    invitedEmail?: string | null;
+    invitedEmailMasked?: string | null;
+    inviteSource?: string | null;
+    registeredAt?: string | null;
+  };
   campaign?: {
     title?: string | null;
     description?: string | null;
@@ -24,13 +34,56 @@ type InvitePreview = {
     reasons?: string[];
   };
   compensationNote?: string | null;
+  claim?: {
+    ok?: boolean;
+    nextAction?: string | null;
+    applicationId?: string | null;
+    message?: string | null;
+  };
 };
+
+const APP_STORE_URL = 'https://apps.apple.com/us/app/hopon-%E4%B8%B2%E5%BA%97/id6757418054';
+
+function normalizeHandle(value?: string | null): string {
+  return String(value ?? '').trim().replace(/^@+/, '');
+}
+
+function creatorFacingFitReasons(preview: InvitePreview | null): string[] {
+  const rawReasons = preview?.creatorFit?.reasons ?? [];
+  const publicReasons = rawReasons.filter((reason) => {
+    const lower = reason.toLowerCase();
+    return !(
+      lower.includes('provided by admin') ||
+      lower.includes('manually invited') ||
+      lower.includes('application after email verification')
+    );
+  });
+  if (preview?.invite?.inviteSource === 'manual_admin') {
+    const platform = preview.creatorFit?.platform === 'tiktok' ? 'TikTok' : 'Instagram';
+    const handle = normalizeHandle(preview.creatorFit?.handle);
+    return [
+      'The hOpOn team selected you for this specific local business campaign.',
+      handle ? `${platform} profile: @${handle}.` : `Your ${platform} profile will be added during onboarding.`,
+      'After email verification, this campaign will appear as accepted in the hOpOn app.',
+      ...publicReasons,
+    ].slice(0, 4);
+  }
+  return publicReasons.slice(0, 4);
+}
 
 export const CreatorInvite: React.FC = () => {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const deepLink = token ? `hamono:///creator-invite?token=${encodeURIComponent(token)}` : 'hamono:///';
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loadingPreview, setLoadingPreview] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [signupBusy, setSignupBusy] = useState(false);
+  const [claimBusy, setClaimBusy] = useState(false);
+  const [formMessage, setFormMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +94,12 @@ export const CreatorInvite: React.FC = () => {
         body: { action: 'resolve', token },
       });
       if (!cancelled) {
-        if (!error && data?.ok) setPreview(data as InvitePreview);
+        if (!error && data?.ok) {
+          const nextPreview = data as InvitePreview;
+          setPreview(nextPreview);
+          setRegistered(Boolean(nextPreview.invite?.registeredAt || nextPreview.invite?.status === 'registered'));
+          if (nextPreview.invite?.invitedEmail) setEmail(nextPreview.invite.invitedEmail);
+        }
         setLoadingPreview(false);
       }
     };
@@ -51,11 +109,101 @@ export const CreatorInvite: React.FC = () => {
     };
   }, [token]);
 
+  const claimInvite = async () => {
+    if (!token || claimBusy) return;
+    setClaimBusy(true);
+    setFormMessage(null);
+    const { data, error } = await supabase.functions.invoke('resolve-creator-invite', {
+      body: { action: 'claim', token },
+    });
+    if (error || !data?.ok) {
+      setFormMessage({ text: error?.message || data?.error || 'Could not complete this invite.', error: true });
+      setClaimBusy(false);
+      return;
+    }
+    setPreview(data as InvitePreview);
+    setRegistered(true);
+    setFormMessage({ text: data?.claim?.message || 'Invite accepted. Download the app and sign in with this email.' });
+    setClaimBusy(false);
+  };
+
+  useEffect(() => {
+    if (!token || !searchParams.get('verified') || registered || claimBusy) return;
+    let cancelled = false;
+    const run = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!cancelled && sessionData.session) {
+        await claimInvite();
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // claimInvite intentionally omitted so verified callback runs once per token/session state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, searchParams, registered]);
+
+  const handleSignup = async () => {
+    if (!token || signupBusy) return;
+    const inviteEmail = preview?.invite?.invitedEmail?.trim();
+    const emailToUse = (inviteEmail || email).trim().toLowerCase();
+    if (!emailToUse) {
+      setFormMessage({ text: 'Enter your email address.', error: true });
+      return;
+    }
+    if (inviteEmail && emailToUse !== inviteEmail.toLowerCase()) {
+      setFormMessage({ text: 'Use the email address this invite was generated for.', error: true });
+      return;
+    }
+    const passwordIssue = validatePasswordStrength(password, emailToUse);
+    if (passwordIssue) {
+      setFormMessage({ text: passwordPolicyError(passwordIssue), error: true });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setFormMessage({ text: 'Passwords do not match.', error: true });
+      return;
+    }
+
+    setSignupBusy(true);
+    setFormMessage(null);
+    const redirectTo = `${window.location.origin}/auth/callback?creator_invite_token=${encodeURIComponent(token)}`;
+    const { data, error } = await supabase.auth.signUp({
+      email: emailToUse,
+      password,
+      options: {
+        emailRedirectTo: redirectTo,
+        data: {
+          creator_invite_token: token,
+          role: 'creator',
+        },
+      },
+    });
+    if (error) {
+      setFormMessage({ text: error.message, error: true });
+      setSignupBusy(false);
+      return;
+    }
+
+    if (data.session) {
+      await claimInvite();
+    } else {
+      setFormMessage({
+        text: `Check ${emailToUse} for the verification email. After verification, this page will finish your invite automatically.`,
+      });
+    }
+    setSignupBusy(false);
+  };
+
   const merchantName = preview?.campaign?.merchant?.name ?? 'a local hOpOn merchant';
   const campaignTitle = preview?.campaign?.title ?? 'a hOpOn creator campaign';
   const campaignDescription = preview?.campaign?.description;
   const offer = preview?.campaign?.offer;
-  const fitReasons = preview?.creatorFit?.reasons ?? [];
+  const fitReasons = creatorFacingFitReasons(preview);
+  const invitedEmail = preview?.invite?.invitedEmail ?? '';
+  const emailLocked = Boolean(invitedEmail);
+  const canSignup = Boolean(token && (invitedEmail || email.trim()) && password && confirmPassword && !signupBusy);
 
   return (
     <div className="min-h-screen bg-[#F7F2E8] text-hopon-black">
@@ -97,11 +245,11 @@ export const CreatorInvite: React.FC = () => {
                 Local business collaboration
               </div>
               <h1 className="font-display text-4xl font-bold tracking-tight md:text-6xl">
-                You were invited to {campaignTitle}.
+                {preview ? `${merchantName} invited you to ${campaignTitle}.` : `You were invited to a hOpOn creator campaign.`}
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-black/65">
                 {preview
-                  ? `${merchantName} is inviting creators through hOpOn. Review the campaign, add your social handle or profile link, and apply in the app.`
+                  ? `This private invite lets you create a hOpOn creator account with the invited email. After email verification, this campaign will already be accepted in the app so you can review the brief and next steps.`
                   : 'hOpOn connects creators with local restaurants, cafes, dessert shops, and other neighborhood businesses. Campaigns can be free experiences, product exchanges, or paid collaborations, depending on the merchant brief.'}
               </p>
               {loadingPreview && <p className="mt-4 font-mono text-xs uppercase tracking-wider text-black/35">Loading invite details...</p>}
@@ -124,21 +272,95 @@ export const CreatorInvite: React.FC = () => {
                   )}
                 </div>
               )}
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href={deepLink}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-hopon-red"
-                >
-                  Open hOpOn app
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-                <a
-                  href={`mailto:contact@thehoponapp.com?subject=hOpOn creator invite&body=Invite token: ${encodeURIComponent(token ?? '')}`}
-                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-black/15 bg-white px-5 font-mono text-xs uppercase tracking-wider text-black/65 transition hover:border-black/35"
-                >
-                  Contact hOpOn
-                </a>
-              </div>
+              {registered ? (
+                <div className="mt-7 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle2 className="mt-1 h-6 w-6 shrink-0 text-emerald-700" />
+                    <div>
+                      <h2 className="font-display text-2xl font-bold tracking-tight text-emerald-950">You're in.</h2>
+                      <p className="mt-2 text-sm leading-6 text-emerald-900">
+                        Your hOpOn creator account is approved and this campaign is accepted. Download the app, sign in with the same email, and continue from Work.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                    <a
+                      href={APP_STORE_URL}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-hopon-red"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download on App Store
+                    </a>
+                    <a
+                      href={deepLink}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-5 font-mono text-xs uppercase tracking-wider text-emerald-900 transition hover:border-emerald-500"
+                    >
+                      Open hOpOn app
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-7 rounded-3xl border border-black/10 bg-[#FAFAF7] p-5">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-hopon-red" />
+                    <h2 className="font-display text-2xl font-bold tracking-tight">Set your creator password</h2>
+                  </div>
+                  <p className="mb-4 text-sm leading-6 text-black/55">
+                    Use the invited email below, choose a password, and verify your email. hOpOn will approve your creator account and add this campaign automatically.
+                  </p>
+                  <div className="grid gap-3">
+                    <label className="block">
+                      <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.18em] text-black/40">Email</span>
+                      <input
+                        type="email"
+                        value={emailLocked ? invitedEmail : email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        readOnly={emailLocked}
+                        className="h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none transition focus:border-hopon-red/50"
+                        placeholder="creator@example.com"
+                      />
+                    </label>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block">
+                        <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.18em] text-black/40">Password</span>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(event) => setPassword(event.target.value)}
+                          className="h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none transition focus:border-hopon-red/50"
+                          autoComplete="new-password"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.18em] text-black/40">Confirm password</span>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(event) => setConfirmPassword(event.target.value)}
+                          className="h-12 w-full rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none transition focus:border-hopon-red/50"
+                          autoComplete="new-password"
+                        />
+                      </label>
+                    </div>
+                    <p className="text-xs leading-5 text-black/45">{passwordPolicyText()}</p>
+                    {formMessage && (
+                      <div className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${formMessage.error ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                        {formMessage.text}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      disabled={!canSignup}
+                      onClick={handleSignup}
+                      className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-hopon-black px-5 font-display text-sm font-bold uppercase tracking-wider text-white transition hover:bg-hopon-red disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {signupBusy ? 'Sending verification...' : 'Create account and verify email'}
+                      {!signupBusy && <ArrowRight className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
               {token && (
                 <p className="mt-4 font-mono text-xs uppercase tracking-wider text-black/35">
                   Invite token: {token.slice(0, 8)}...
@@ -153,10 +375,11 @@ export const CreatorInvite: React.FC = () => {
               </div>
               <div className="space-y-4">
                 {[
-                  'Review the campaign brief before accepting.',
+                  'Create your hOpOn creator account with the invited email and verify it.',
+                  'Download hOpOn and sign in with the same email.',
+                  'Open the accepted campaign in Work and review the brief, deliverables, timing, and compensation before posting.',
                   'Add or confirm your Instagram/TikTok handle or profile link in the app.',
-                  'Post only after you understand the deliverables, timing, and compensation model.',
-                  'hOpOn tracks campaign performance through approved submission links and redemptions.',
+                  'Submit approved post links and redemption details through hOpOn so campaign results can be tracked.',
                 ].map((item) => (
                   <div key={item} className="flex items-start gap-3 rounded-2xl border border-black/10 bg-white p-4">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
@@ -165,16 +388,25 @@ export const CreatorInvite: React.FC = () => {
                 ))}
               </div>
               <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-                {preview?.compensationNote || "Creator compensation is separate from hOpOn's platform subscription and is always controlled by the campaign brief."}
+                {preview?.compensationNote || "Compensation, free experiences, product exchanges, and customer incentives are defined by each campaign. hOpOn's platform subscription does not automatically include creator payment."}
               </p>
               {fitReasons.length > 0 && (
                 <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-                  <div className="font-display text-sm font-bold text-emerald-950">Why you may be a fit</div>
+                  <div className="font-display text-sm font-bold text-emerald-950">Why we invited you</div>
                   <ul className="mt-2 space-y-1 text-sm leading-6 text-emerald-900">
                     {fitReasons.slice(0, 4).map((reason) => <li key={reason}>• {reason}</li>)}
                   </ul>
                 </div>
               )}
+              <div className="mt-5 rounded-2xl border border-black/10 bg-white p-4">
+                <div className="mb-2 flex items-center gap-2 font-display text-sm font-bold text-black">
+                  <Smartphone className="h-4 w-4 text-hopon-red" />
+                  After verification
+                </div>
+                <p className="text-sm leading-6 text-black/60">
+                  This page will show the App Store link after your email is verified and the invite is claimed.
+                </p>
+              </div>
             </section>
           </div>
         </div>
