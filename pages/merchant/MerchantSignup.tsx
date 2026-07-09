@@ -1,6 +1,6 @@
 /**
  * Merchant (restaurant) signup — web version of Blanc app/(auth)/signup.tsx (restaurant flow only).
- * Flow: email/password → Step 1 (name, location, category) → Step 2 (contact, description, optional) → signUp + app_users + restaurant_profiles → /pending.
+ * Flow: email/password → Step 1 (name, location, category) → Step 2 (contact, description, optional) → signUp → app_users + restaurant_profiles → /pending.
  */
 
 import React, { useState } from 'react';
@@ -15,6 +15,12 @@ import {
   brandTextareaClass,
 } from '../../components/BrandChrome';
 import { passwordPolicyError, passwordPolicyText, validatePasswordStrength } from '../../lib/passwordPolicy';
+import {
+  SignupProfileError,
+  buildMerchantSignupMetadata,
+  completeMerchantSignupProfile,
+  type MerchantSignupProfile,
+} from '../../lib/merchant/signupProfile';
 
 type Step = 0 | 1 | 2;
 
@@ -72,6 +78,7 @@ export const MerchantSignup: React.FC = () => {
     errorContactRequired: 'Please enter WeChat ID or phone number',
     errorSignupFailed: 'Signup failed',
     errorAccountExists: 'This email is already registered. Please login or use another email.',
+    errorAccountStarted: 'This email has already started signup. Please check your confirmation email, login, or contact hOpOn to reset the account.',
     errorCreateProfile: 'Failed to create profile',
   };
 
@@ -140,11 +147,26 @@ export const MerchantSignup: React.FC = () => {
       const redirectUrl = typeof window !== 'undefined' && window.location?.origin
         ? `${window.location.origin}/auth/callback`
         : undefined;
+      const contactVal = contactValue.trim();
+      const profileData: MerchantSignupProfile = {
+        name: name.trim(),
+        location: location.trim(),
+        category: category.trim(),
+        cuisine_tags: cuisineTags.trim() ? cuisineTags.split(',').map((t) => t.trim()).filter(Boolean) : [],
+        description: description.trim() || null,
+        contact_type: contactType,
+        contact_value: contactVal || null,
+        contact_wechat: contactType === 'wechat' && contactVal ? contactVal : null,
+        notes: notes.trim() || null,
+      };
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        ...(redirectUrl && { options: { emailRedirectTo: redirectUrl } }),
+        options: {
+          ...(redirectUrl && { emailRedirectTo: redirectUrl }),
+          data: buildMerchantSignupMetadata(profileData),
+        },
       });
 
       if (authError) {
@@ -158,57 +180,42 @@ export const MerchantSignup: React.FC = () => {
         setLoading(false);
         return;
       }
+      if (Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+        setStep(0);
+        setError(copy.errorAccountStarted);
+        setLoading(false);
+        return;
+      }
 
       const userId = authData.user.id;
-
-      const { error: appUserError } = await supabase
-        .from('app_users')
-        .upsert({
-          id: userId,
-          role: 'restaurant',
-          status: 'pending',
-          email: email.trim(),
-        }, { onConflict: 'id' });
-
-      if (appUserError) {
-        if (appUserError.code === '23505') {
-          setError(copy.errorAccountExists);
-        } else {
-          console.error('[MerchantSignup] app_users', appUserError);
-          setError(copy.errorCreateProfile);
-        }
-        setLoading(false);
+      if (!authData.session) {
+        setError('');
+        navigate('/pending?verify=email', { replace: true });
         return;
       }
 
-      const contactVal = contactValue.trim();
-      const profileData = {
-        id: userId,
-        name: name.trim(),
-        location: location.trim(),
-        category: category.trim(),
-        cuisine_tags: cuisineTags.trim() ? cuisineTags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-        description: description.trim() || null,
-        contact_type: contactType,
-        contact_value: contactVal || null,
-        contact_wechat: contactType === 'wechat' && contactVal ? contactVal : null,
-        notes: notes.trim() || null,
-      };
-
-      const { error: profileError } = await supabase
-        .from('restaurant_profiles')
-        .upsert(profileData, { onConflict: 'id' });
-
-      if (profileError) {
-        console.error('[MerchantSignup] restaurant_profiles', profileError);
-        setError(profileError.message || copy.errorCreateProfile);
-        setLoading(false);
-        return;
-      }
+      await completeMerchantSignupProfile({
+        userId,
+        email: email.trim(),
+        profile: profileData,
+      });
 
       navigate('/pending', { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : copy.errorSignupFailed);
+      if (err instanceof SignupProfileError) {
+        console.error(`[MerchantSignup] ${err.stage}`, err.source ?? err);
+        const errorText = `${err.source?.message ?? ''} ${err.source?.details ?? ''}`.toLowerCase();
+        if (err.stage === 'account') {
+          setStep(0);
+        } else if (/\b(name|location|category|cuisine_tags)\b/.test(errorText)) {
+          setStep(1);
+        } else {
+          setStep(2);
+        }
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : copy.errorSignupFailed);
+      }
     } finally {
       setLoading(false);
     }

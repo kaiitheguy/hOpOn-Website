@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { getMerchantSessionState } from '../lib/merchant/api';
+import {
+  SignupProfileError,
+  completeMerchantSignupProfile,
+  readMerchantSignupProfile,
+} from '../lib/merchant/signupProfile';
 import { BrandBackground, BrandStatusCard, brandPrimaryButtonClass } from '../components/BrandChrome';
 
 function parseHashParams(hash: string): Record<string, string> {
@@ -52,6 +57,16 @@ export const AuthCallback: React.FC = () => {
             navigate('/reset-password', { replace: true });
             return;
           }
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          const merchantSignupProfile = readMerchantSignupProfile(user?.user_metadata);
+          if (user && merchantSignupProfile) {
+            await completeMerchantSignupProfile({
+              userId: user.id,
+              email: user.email ?? '',
+              profile: merchantSignupProfile,
+            });
+          }
           const merchantState = await getMerchantSessionState();
           if (merchantState.reason === 'ready') {
             navigate('/merchant', { replace: true });
@@ -70,7 +85,9 @@ export const AuthCallback: React.FC = () => {
       } catch (err) {
         if (cancelled) return;
         setStatus('error');
-        const msg = err instanceof Error ? err.message : 'Verification failed';
+        const msg = err instanceof SignupProfileError
+          ? err.message
+          : err instanceof Error ? err.message : 'Verification failed';
         setErrorMessage(msg);
       }
     }
