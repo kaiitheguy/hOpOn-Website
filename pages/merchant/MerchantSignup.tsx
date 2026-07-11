@@ -1,10 +1,10 @@
 /**
  * Merchant (restaurant) signup — web version of Blanc app/(auth)/signup.tsx (restaurant flow only).
- * Flow: email/password → Step 1 (name, location, category) → Step 2 (contact, description, optional) → signUp → app_users + restaurant_profiles → /pending.
+ * Flow: email/password → email confirmation → Step 1 (name, location, category) → Step 2 (contact, description, optional) → app_users + restaurant_profiles → /pending.
  */
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import {
   BrandAuthLayout,
@@ -17,7 +17,6 @@ import {
 import { passwordPolicyError, passwordPolicyText, validatePasswordStrength } from '../../lib/passwordPolicy';
 import {
   SignupProfileError,
-  buildMerchantSignupMetadata,
   completeMerchantSignupProfile,
   type MerchantSignupProfile,
 } from '../../lib/merchant/signupProfile';
@@ -26,6 +25,8 @@ type Step = 0 | 1 | 2;
 
 export const MerchantSignup: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isCompletingSignup = searchParams.get('complete') === '1';
   const [step, setStep] = useState<Step>(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,6 +41,23 @@ export const MerchantSignup: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isCompletingSignup) return;
+    let cancelled = false;
+    const loadVerifiedAccount = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (cancelled) return;
+      if (!user) {
+        navigate('/merchant/login', { replace: true });
+        return;
+      }
+      setEmail(user.email ?? '');
+      setStep(1);
+    };
+    loadVerifiedAccount();
+    return () => { cancelled = true; };
+  }, [isCompletingSignup, navigate]);
 
   const copy = {
     title: 'Merchant Sign Up',
@@ -80,6 +98,7 @@ export const MerchantSignup: React.FC = () => {
     errorAccountExists: 'This email is already registered. Please login or use another email.',
     errorAccountStarted: 'This email has already started signup. Please check your confirmation email, login, or contact hOpOn to reset the account.',
     errorCreateProfile: 'Failed to create profile',
+    errorVerifyFirst: 'Please verify your email before completing your merchant profile.',
   };
 
   const validateStep0 = (): boolean => {
@@ -118,8 +137,37 @@ export const MerchantSignup: React.FC = () => {
     return true;
   };
 
-  const handleNext = () => {
-    if (step === 0 && validateStep0()) setStep(1);
+  const handleNext = async () => {
+    if (step === 0 && validateStep0()) {
+      setLoading(true);
+      setError('');
+      try {
+        const redirectUrl = `${window.location.origin}/auth/callback`;
+        const { data, error: authError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: redirectUrl,
+            data: { hopon_signup_role: 'restaurant', role: 'restaurant' },
+          },
+        });
+        if (authError) throw authError;
+        if (!data.user) throw new Error(copy.errorSignupFailed);
+        if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          setError(copy.errorAccountStarted);
+          return;
+        }
+        if (!data.session) {
+          navigate('/pending?verify=email', { replace: true });
+          return;
+        }
+        setStep(1);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : copy.errorSignupFailed);
+      } finally {
+        setLoading(false);
+      }
+    }
     else if (step === 1 && validateStep1()) setStep(2);
   };
 
@@ -132,21 +180,12 @@ export const MerchantSignup: React.FC = () => {
     setError('');
 
     try {
-      const { data: existingUser } = await supabase
-        .from('app_users')
-        .select('id, email')
-        .eq('email', email.trim())
-        .maybeSingle();
-
-      if (existingUser) {
-        setError(copy.errorAccountExists);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError(copy.errorVerifyFirst);
         setLoading(false);
         return;
       }
-
-      const redirectUrl = typeof window !== 'undefined' && window.location?.origin
-        ? `${window.location.origin}/auth/callback`
-        : undefined;
       const contactVal = contactValue.trim();
       const profileData: MerchantSignupProfile = {
         name: name.trim(),
@@ -160,43 +199,9 @@ export const MerchantSignup: React.FC = () => {
         notes: notes.trim() || null,
       };
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          ...(redirectUrl && { emailRedirectTo: redirectUrl }),
-          data: buildMerchantSignupMetadata(profileData),
-        },
-      });
-
-      if (authError) {
-        setError(authError.message);
-        setLoading(false);
-        return;
-      }
-
-      if (!authData.user) {
-        setError(copy.errorSignupFailed);
-        setLoading(false);
-        return;
-      }
-      if (Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
-        setStep(0);
-        setError(copy.errorAccountStarted);
-        setLoading(false);
-        return;
-      }
-
-      const userId = authData.user.id;
-      if (!authData.session) {
-        setError('');
-        navigate('/pending?verify=email', { replace: true });
-        return;
-      }
-
       await completeMerchantSignupProfile({
-        userId,
-        email: email.trim(),
+        userId: user.id,
+        email: user.email ?? email.trim(),
         profile: profileData,
       });
 
@@ -247,7 +252,7 @@ export const MerchantSignup: React.FC = () => {
           </div>
         </div>
 
-        {step === 0 && (
+        {step === 0 && !isCompletingSignup && (
           <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} className="space-y-4">
             <div>
               <FieldLabel>{copy.email} *</FieldLabel>
@@ -290,7 +295,7 @@ export const MerchantSignup: React.FC = () => {
               type="submit"
               className={`${brandPrimaryButtonClass} w-full`}
             >
-              {copy.next}
+              {loading ? '…' : copy.next}
             </button>
           </form>
         )}

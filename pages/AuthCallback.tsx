@@ -67,6 +67,19 @@ export const AuthCallback: React.FC = () => {
             return;
           }
           const merchantSignupProfile = readMerchantSignupProfile(user?.user_metadata);
+          const metadata = (user?.user_metadata ?? {}) as Record<string, unknown>;
+          const signupRole = metadata.hopon_signup_role === 'restaurant' || metadata.role === 'restaurant'
+            ? 'restaurant'
+            : metadata.hopon_signup_role === 'creator' || metadata.role === 'creator'
+              ? 'creator'
+              : null;
+          const { data: existingAppUser } = user
+            ? await supabase.from('app_users').select('id').eq('id', user.id).maybeSingle()
+            : { data: null };
+          if (signupRole === 'restaurant' && !merchantSignupProfile && !existingAppUser) {
+            navigate('/merchant/signup?complete=1', { replace: true });
+            return;
+          }
           if (user && merchantSignupProfile) {
             await completeMerchantSignupProfile({
               userId: user.id,

@@ -48,7 +48,7 @@ export const MerchantLogin: React.FC = () => {
       return;
     }
     if (state.reason === 'missing_profile') {
-      navigate('/merchant/profile', { replace: true });
+      navigate('/merchant/signup?complete=1', { replace: true });
       return;
     }
     if (state.reason === 'not_merchant' || !state.userId) {
