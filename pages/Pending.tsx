@@ -17,7 +17,7 @@ export const Pending: React.FC = () => {
       ? 'Creator email confirmed'
       : isCreator
         ? 'Creator application under review'
-        : 'Application under review';
+        : 'Merchant application under review';
   const subtitle = needsEmailVerification
     ? 'Confirm email to finish signup'
     : needsCreatorSetup
