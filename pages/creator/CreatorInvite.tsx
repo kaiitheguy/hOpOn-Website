@@ -200,6 +200,7 @@ export const CreatorInvite: React.FC = () => {
         emailRedirectTo: redirectTo,
         data: {
           creator_invite_token: token,
+          hopon_signup_role: 'creator',
           role: 'creator',
         },
       },

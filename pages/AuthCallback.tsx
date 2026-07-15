@@ -74,8 +74,12 @@ export const AuthCallback: React.FC = () => {
               ? 'creator'
               : null;
           const { data: existingAppUser } = user
-            ? await supabase.from('app_users').select('id').eq('id', user.id).maybeSingle()
+            ? await supabase.from('app_users').select('id, role, status').eq('id', user.id).maybeSingle()
             : { data: null };
+          if (signupRole === 'creator' && !existingAppUser) {
+            navigate('/pending?role=creator&setup=required', { replace: true });
+            return;
+          }
           if (signupRole === 'restaurant' && !merchantSignupProfile && !existingAppUser) {
             navigate('/merchant/signup?complete=1', { replace: true });
             return;
@@ -94,6 +98,10 @@ export const AuthCallback: React.FC = () => {
           }
           if (merchantState.reason === 'rejected') {
             navigate('/rejected', { replace: true });
+            return;
+          }
+          if (signupRole === 'creator' || existingAppUser?.role === 'creator') {
+            navigate('/pending?role=creator', { replace: true });
             return;
           }
           navigate('/pending', { replace: true });
