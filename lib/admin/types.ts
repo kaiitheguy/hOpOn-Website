@@ -42,6 +42,7 @@ export interface AdminCampaign {
   endDate?: string | null;
   platforms?: string[] | null;
   createdAt?: string | null;
+  isInternalTest?: boolean;
   restaurant?: AdminRestaurant | null;
 }
 
@@ -163,6 +164,58 @@ export interface AdminDashboardData {
     openCampaigns: number;
     activeSourcingRequests: number;
     growthLeads: number;
+  };
+}
+
+export interface AdminCampaignStageCounts {
+  applications: number;
+  visit: number;
+  draft: number;
+  final: number;
+  done: number;
+  rejected: number;
+}
+
+export interface AdminCampaignMonitorRow {
+  campaign: AdminCampaign;
+  stages: AdminCampaignStageCounts;
+  totalApplications: number;
+  inviteCount: number;
+  usedInviteCount: number;
+  trackedVisits: number;
+  nearbyTrackedVisits: number;
+}
+
+export type AdminInviteUsageState = 'unused' | 'used' | 'expired' | 'revoked';
+
+export interface AdminInviteMonitorItem {
+  candidateId: string;
+  campaignId: string;
+  campaignTitle: string;
+  merchantName: string;
+  inviteUrl?: string | null;
+  status: string;
+  usageState: AdminInviteUsageState;
+  invitedEmail?: string | null;
+  inviteSource?: string | null;
+  creatorName?: string | null;
+  creatorHandle?: string | null;
+  platform?: string | null;
+  createdAt?: string | null;
+  usedAt?: string | null;
+}
+
+export interface AdminCampaignMonitorData {
+  campaigns: AdminCampaignMonitorRow[];
+  invites: AdminInviteMonitorItem[];
+  warnings: string[];
+  totals: {
+    campaigns: number;
+    openCampaigns: number;
+    invites: number;
+    usedInvites: number;
+    unusedInvites: number;
+    trackedVisits: number;
   };
 }
 

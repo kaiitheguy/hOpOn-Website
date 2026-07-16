@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart3, Compass, LayoutDashboard, LogOut, ShieldCheck, Sparkles, UsersRound } from 'lucide-react';
+import { Activity, BarChart3, Compass, LayoutDashboard, LogOut, ShieldCheck, Sparkles, UsersRound } from 'lucide-react';
 import { signOutAdmin } from '../../lib/admin/api';
 
 const nav = [
   { to: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
+  { to: '/admin/monitor', end: false, label: 'Campaign Monitor', icon: Activity },
   { to: '/admin/sourcing', end: false, label: 'Campaign Sourcing', icon: Compass },
   { to: '/admin/leads', end: false, label: 'Growth OS Discovery', icon: Sparkles },
 ];
@@ -74,7 +75,7 @@ export const AdminLayout: React.FC = () => {
             </div>
           </Link>
 
-          <nav className="hidden items-center gap-2 md:flex">
+          <nav className="hidden items-center gap-2 2xl:flex">
             {nav.map(({ to, end, label, icon: Icon }) => (
               <NavLink
                 key={to}
@@ -110,7 +111,7 @@ export const AdminLayout: React.FC = () => {
       </header>
 
       <main className="mx-auto w-full max-w-[1440px] px-4 py-6 md:px-8 md:py-8">
-        <div className="mb-4 flex gap-2 overflow-x-auto md:hidden">
+        <div className="mb-4 flex gap-2 overflow-x-auto 2xl:hidden">
           {nav.map(({ to, end, label, icon: Icon }) => (
             <NavLink
               key={to}

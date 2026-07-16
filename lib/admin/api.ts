@@ -2,7 +2,10 @@ import { supabase } from '../supabaseClient';
 import type {
   AdminAppUser,
   AdminCampaign,
+  AdminCampaignMonitorData,
+  AdminCampaignMonitorRow,
   AdminDashboardData,
+  AdminInviteMonitorItem,
   AdminRestaurant,
   AdminSessionState,
   CampaignSourcingCandidate,
@@ -166,6 +169,7 @@ function mapCampaign(row: any): AdminCampaign {
     endDate: row.end_date ?? row.ends_at ?? null,
     platforms: asArray(row.platforms),
     createdAt: row.created_at ?? null,
+    isInternalTest: row.is_internal_test === true,
     restaurant: mapRestaurant(restaurant),
   };
 }
@@ -353,7 +357,7 @@ export async function listAdminCampaigns(limit = 40): Promise<AdminCampaign[]> {
   const { data, error } = await supabase
     .from('campaigns')
     .select(
-      'id,restaurant_id,title,description,status,type,budget,location,start_date,end_date,platforms,created_at,restaurant_profiles(id,name,location,category,city_display,cuisine_tags,avatar,is_official)'
+      'id,restaurant_id,title,description,status,type,budget,location,start_date,end_date,platforms,created_at,is_internal_test,restaurant_profiles(id,name,location,category,city_display,cuisine_tags,avatar,is_official)'
     )
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -460,6 +464,199 @@ export async function getAdminDashboard(): Promise<AdminDashboardData> {
       openCampaigns,
       activeSourcingRequests,
       growthLeads: growthLeads.length,
+    },
+  };
+}
+
+function newestByTimestamp<T extends { submitted_at?: string | null; created_at?: string | null }>(
+  rows: T[],
+  key: (row: T) => string
+): Map<string, T> {
+  const result = new Map<string, T>();
+  for (const row of rows) {
+    const rowKey = key(row);
+    if (!rowKey) continue;
+    const current = result.get(rowKey);
+    const currentTime = new Date(current?.submitted_at ?? current?.created_at ?? 0).getTime();
+    const rowTime = new Date(row.submitted_at ?? row.created_at ?? 0).getTime();
+    if (!current || rowTime >= currentTime) result.set(rowKey, row);
+  }
+  return result;
+}
+
+function inviteUsageState(row: any): AdminInviteMonitorItem['usageState'] {
+  const status = String(row.status ?? '').toLowerCase();
+  if (status === 'revoked') return 'revoked';
+  const expiresAt = row.expires_at ? new Date(row.expires_at).getTime() : null;
+  if (status === 'expired' || (expiresAt != null && Number.isFinite(expiresAt) && expiresAt < Date.now())) return 'expired';
+  if (
+    row.claimed_at ||
+    row.registered_at ||
+    row.claimed_creator_user_id ||
+    row.application_id ||
+    ['accepted', 'claimed', 'registered'].includes(status)
+  ) {
+    return 'used';
+  }
+  return 'unused';
+}
+
+function dedupeTrackedVisits(rows: any[]): any[] {
+  const canonical = new Map<string, any>();
+  const dedupeWindowMs = 30 * 60 * 1000;
+  for (const row of rows) {
+    if (String(row.status ?? '').toLowerCase() === 'void') continue;
+    const redeemedAt = new Date(row.redeemed_at ?? row.created_at ?? 0).getTime();
+    if (!Number.isFinite(redeemedAt)) continue;
+    const visitorKey = String(row.anonymous_visitor_id || `event:${row.client_redemption_id || row.id}`);
+    const key = `${row.campaign_id}:${visitorKey}:${Math.floor(redeemedAt / dedupeWindowMs)}`;
+    const previous = canonical.get(key);
+    if (!previous || redeemedAt < new Date(previous.redeemed_at ?? previous.created_at ?? 0).getTime()) {
+      canonical.set(key, row);
+    }
+  }
+  return Array.from(canonical.values());
+}
+
+export async function getAdminCampaignMonitor(): Promise<AdminCampaignMonitorData> {
+  const campaigns = await listAdminCampaigns(1000);
+  if (!campaigns.length) {
+    return {
+      campaigns: [],
+      invites: [],
+      warnings: [],
+      totals: { campaigns: 0, openCampaigns: 0, invites: 0, usedInvites: 0, unusedInvites: 0, trackedVisits: 0 },
+    };
+  }
+
+  const warnings: string[] = [];
+  const campaignIds = campaigns.map((campaign) => campaign.id);
+  const [applicationsResult, draftsResult, deliverablesResult, invitesResult, candidatesResult, redemptionsResult] = await Promise.all([
+    supabase
+      .from('applications')
+      .select('id,campaign_id,creator_id,status,verified_at,schedule_status,confirmed_visit_time,created_at')
+      .in('campaign_id', campaignIds)
+      .limit(5000),
+    supabase
+      .from('draft_posts')
+      .select('id,application_id,status,submitted_at,created_at')
+      .limit(5000),
+    supabase
+      .from('deliverables')
+      .select('id,application_id,status,submitted_at,created_at')
+      .limit(5000),
+    supabase
+      .from('campaign_sourcing_invites')
+      .select('candidate_id,campaign_id,invite_url,invite_token,status,expires_at,claimed_creator_user_id,claimed_at,application_id,invited_email,invite_source,registered_at,created_at,updated_at')
+      .in('campaign_id', campaignIds)
+      .order('created_at', { ascending: false })
+      .limit(5000),
+    supabase
+      .from('campaign_sourcing_candidates')
+      .select('id,display_name,handle,platform,profile_url')
+      .in('campaign_id', campaignIds)
+      .limit(5000),
+    supabase
+      .from('offer_redemptions')
+      .select('id,client_redemption_id,campaign_id,creator_id,status,anonymous_visitor_id,is_nearby,redeemed_at,created_at')
+      .in('campaign_id', campaignIds)
+      .order('redeemed_at', { ascending: false })
+      .limit(5000),
+  ]);
+
+  const collectRows = (result: { data: any[] | null; error: any }, label: string): any[] => {
+    if (!result.error) return result.data ?? [];
+    warnings.push(`${label} data is unavailable: ${result.error.message ?? 'unknown error'}`);
+    return [];
+  };
+
+  const applications = collectRows(applicationsResult as any, 'Application');
+  const campaignApplicationIds = new Set(applications.map((row) => row.id));
+  const drafts = collectRows(draftsResult as any, 'Draft').filter((row) => campaignApplicationIds.has(row.application_id));
+  const deliverables = collectRows(deliverablesResult as any, 'Final submission').filter((row) => campaignApplicationIds.has(row.application_id));
+  const inviteRows = collectRows(invitesResult as any, 'Invitation');
+  const candidates = collectRows(candidatesResult as any, 'Sourcing candidate');
+  const redemptionRows = collectRows(redemptionsResult as any, 'Tracked visit');
+
+  const latestDraftByApplication = newestByTimestamp(drafts, (row) => row.application_id);
+  const latestDeliverableByApplication = newestByTimestamp(deliverables, (row) => row.application_id);
+  const candidatesById = new Map(candidates.map((row) => [row.id, row]));
+  const campaignsById = new Map(campaigns.map((campaign) => [campaign.id, campaign]));
+  const dedupedVisits = dedupeTrackedVisits(redemptionRows);
+
+  const invites: AdminInviteMonitorItem[] = inviteRows.map((row) => {
+    const campaign = campaignsById.get(row.campaign_id);
+    const candidate = candidatesById.get(row.candidate_id);
+    const usageState = inviteUsageState(row);
+    return {
+      candidateId: row.candidate_id,
+      campaignId: row.campaign_id,
+      campaignTitle: campaign?.title ?? 'Unknown campaign',
+      merchantName: campaign?.restaurant?.name ?? 'Unknown merchant',
+      inviteUrl: normalizeInviteUrl(row.invite_url, row.invite_token),
+      status: row.status ?? 'drafted',
+      usageState,
+      invitedEmail: row.invited_email ?? null,
+      inviteSource: row.invite_source ?? null,
+      creatorName: candidate?.display_name ?? null,
+      creatorHandle: candidate?.handle ?? null,
+      platform: candidate?.platform ?? null,
+      createdAt: row.created_at ?? null,
+      usedAt: row.claimed_at ?? row.registered_at ?? null,
+    };
+  });
+
+  const campaignRows: AdminCampaignMonitorRow[] = campaigns.map((campaign) => {
+    const campaignApplications = applications.filter((row) => row.campaign_id === campaign.id);
+    const stages = { applications: 0, visit: 0, draft: 0, final: 0, done: 0, rejected: 0 };
+
+    for (const application of campaignApplications) {
+      const status = String(application.status ?? '').toUpperCase();
+      if (status === 'PENDING') {
+        stages.applications += 1;
+        continue;
+      }
+      if (status !== 'ACCEPTED') {
+        stages.rejected += 1;
+        continue;
+      }
+
+      const deliverable = latestDeliverableByApplication.get(application.id);
+      if (deliverable) {
+        if (String(deliverable.status ?? '').toUpperCase() === 'APPROVED') stages.done += 1;
+        else stages.final += 1;
+        continue;
+      }
+      const draft = latestDraftByApplication.get(application.id);
+      if (String(draft?.status ?? '').toUpperCase() === 'APPROVED') stages.final += 1;
+      else if (application.verified_at || draft) stages.draft += 1;
+      else stages.visit += 1;
+    }
+
+    const campaignInvites = invites.filter((invite) => invite.campaignId === campaign.id);
+    const campaignVisits = dedupedVisits.filter((visit) => visit.campaign_id === campaign.id);
+    return {
+      campaign,
+      stages,
+      totalApplications: campaignApplications.length,
+      inviteCount: campaignInvites.length,
+      usedInviteCount: campaignInvites.filter((invite) => invite.usageState === 'used').length,
+      trackedVisits: campaignVisits.length,
+      nearbyTrackedVisits: campaignVisits.filter((visit) => visit.is_nearby === true).length,
+    };
+  });
+
+  return {
+    campaigns: campaignRows,
+    invites,
+    warnings: Array.from(new Set(warnings)),
+    totals: {
+      campaigns: campaignRows.length,
+      openCampaigns: campaignRows.filter((row) => String(row.campaign.status).toUpperCase() === 'OPEN').length,
+      invites: invites.length,
+      usedInvites: invites.filter((invite) => invite.usageState === 'used').length,
+      unusedInvites: invites.filter((invite) => invite.usageState === 'unused').length,
+      trackedVisits: dedupedVisits.length,
     },
   };
 }

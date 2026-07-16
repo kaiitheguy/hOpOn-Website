@@ -32,6 +32,7 @@ import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminSourcing } from './pages/admin/AdminSourcing';
 import { AdminSourcingDetail } from './pages/admin/AdminSourcingDetail';
 import { AdminGrowthLeads } from './pages/admin/AdminGrowthLeads';
+import { AdminCampaignMonitor } from './pages/admin/AdminCampaignMonitor';
 import { CreatorInvite } from './pages/creator/CreatorInvite';
 import { GeoMerchantPage } from './components/GeoMerchantPage';
 import { GeoDiscoveryPage } from './components/GeoDiscoveryPage';
@@ -70,6 +71,7 @@ root.render(
           }
         >
           <Route index element={<AdminDashboard />} />
+          <Route path="monitor" element={<AdminCampaignMonitor />} />
           <Route path="sourcing" element={<AdminSourcing />} />
           <Route path="sourcing/:id" element={<AdminSourcingDetail />} />
           <Route path="leads" element={<AdminGrowthLeads />} />
