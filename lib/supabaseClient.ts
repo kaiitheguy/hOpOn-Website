@@ -174,6 +174,42 @@ export type HoponRedeemCampaign = {
   creators: HoponRedeemCreator[];
 };
 
+type SupabaseRelation<T> = T | T[] | null;
+
+type RedeemCreatorProfileRow = {
+  id: string;
+  name: string | null;
+  handle: string | null;
+  avatar: string | null;
+  tags: string[] | null;
+  tiktok_handle: string | null;
+};
+
+type RedeemApplicationRow = {
+  id: string;
+  campaign_id: string;
+  creator_id: string;
+  status: string;
+  verified_at: string | null;
+  creator_profiles: SupabaseRelation<RedeemCreatorProfileRow>;
+};
+
+type RedeemCampaignRow = {
+  id: string;
+  title: string;
+  description?: string | null;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  platforms: string[] | null;
+  restaurant_profiles: SupabaseRelation<{ name: string | null }>;
+};
+
+function firstRelated<T>(value: SupabaseRelation<T> | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
 const platformLabel = (platform?: string | null): string => {
   const value = String(platform || '').toLowerCase();
   if (value.includes('xhs') || value.includes('xiaohong')) return 'Xiaohongshu';
@@ -193,6 +229,33 @@ const creatorLabel = (tags: unknown): string => {
 
 const normalizeHandle = (handle?: string | null): string =>
   String(handle || 'creator').trim().replace(/^@+/, '') || 'creator';
+
+function checkedInCreatorFromApplication(
+  application: RedeemApplicationRow,
+  campaignId: string,
+  platform?: string | null
+): HoponRedeemCreator | null {
+  if (
+    application.campaign_id !== campaignId ||
+    application.status !== 'ACCEPTED' ||
+    typeof application.verified_at !== 'string' ||
+    !application.verified_at.trim()
+  ) {
+    return null;
+  }
+
+  const creator = firstRelated(application.creator_profiles);
+  if (!creator?.id || creator.id !== application.creator_id) return null;
+
+  return {
+    id: creator.id,
+    name: creator.name || creator.handle || 'Creator',
+    handle: normalizeHandle(creator.handle || creator.tiktok_handle),
+    avatarUrl: creator.avatar || null,
+    platform: platformLabel(platform),
+    label: creatorLabel(creator.tags),
+  };
+}
 
 const TEST_CAMPAIGN_PATTERN = /test|demo|sandbox|internal|\bqa\b|测试|測試/i;
 const VERIFY_AVATAR_CACHE_KEY = 'hopon:verify-avatar-cache:v1';
@@ -346,67 +409,16 @@ function isLikelyPublicOpenCampaign(campaign: {
   title?: string | null;
   description?: string | null;
   status?: string | null;
-  restaurant_profiles?: { name?: string | null } | null;
+  restaurant_profiles?: SupabaseRelation<{ name?: string | null }>;
 }): boolean {
   if (campaign.status !== 'OPEN') return false;
   const searchable = [
     campaign.title,
     campaign.description,
-    campaign.restaurant_profiles?.name,
+    firstRelated(campaign.restaurant_profiles)?.name,
   ].filter(Boolean).join(' ');
   return !TEST_CAMPAIGN_PATTERN.test(searchable);
 }
-
-export const fallbackRedeemCampaigns: HoponRedeemCampaign[] = [
-  {
-    id: 'demo-strawberry-matcha',
-    title: 'Strawberry Matcha Launch',
-    merchantName: 'Atelier Matcha',
-    status: 'OPEN',
-    offerType: 'percent_off',
-    offerValue: 5,
-    creators: [
-      { id: 'maya-chen', name: 'Maya Chen', handle: 'mayabites', platform: 'TikTok', label: 'Local food creator' },
-      { id: 'iris-lin', name: 'Iris Lin', handle: 'irisnotes', platform: 'Instagram', label: 'Local cafe creator' },
-    ],
-  },
-  {
-    id: 'demo-ramen-lunch',
-    title: 'Weekday Ramen Lunch',
-    merchantName: 'Mori Ramen Bar',
-    status: 'OPEN',
-    offerType: 'percent_off',
-    offerValue: 5,
-    creators: [
-      { id: 'noah-park', name: 'Noah Park', handle: 'noahvisits', platform: 'TikTok', label: 'Local food creator' },
-      { id: 'emi-sato', name: 'Emi Sato', handle: 'eminyc', platform: 'Instagram', label: 'Local food creator' },
-    ],
-  },
-  {
-    id: 'demo-first-facial',
-    title: 'First Facial Visit',
-    merchantName: 'Bloom Skin Studio',
-    status: 'OPEN',
-    offerType: 'percent_off',
-    offerValue: 5,
-    creators: [
-      { id: 'lena-ross', name: 'Lena Ross', handle: 'lenaglow', platform: 'Instagram', label: 'Local beauty creator' },
-      { id: 'talia-cho', name: 'Talia Cho', handle: 'taliacare', platform: 'TikTok', label: 'Local beauty creator' },
-    ],
-  },
-  {
-    id: 'demo-pastry-drop',
-    title: 'Seasonal Pastry Drop',
-    merchantName: 'Mori Bakehouse',
-    status: 'OPEN',
-    offerType: 'percent_off',
-    offerValue: 5,
-    creators: [
-      { id: 'marco-lee', name: 'Marco Lee', handle: 'marcoeats', platform: 'TikTok', label: 'Local food creator' },
-      { id: 'nina-wu', name: 'Nina Wu', handle: 'ninabakes', platform: 'Instagram', label: 'Local food creator' },
-    ],
-  },
-];
 
 function normalizePublicRedeemCampaigns(raw: unknown): HoponRedeemCampaign[] {
   if (!Array.isArray(raw)) return [];
@@ -455,6 +467,19 @@ function normalizePublicRedeemCampaigns(raw: unknown): HoponRedeemCampaign[] {
     .filter((campaign): campaign is HoponRedeemCampaign => Boolean(campaign));
 }
 
+function findDirectRedeemCampaign(
+  campaigns: HoponRedeemCampaign[],
+  campaignId: string,
+  creatorId?: string
+): HoponRedeemCampaign | null {
+  const campaign = campaigns.find((item) => item.id === campaignId);
+  if (!campaign) return null;
+  if (!creatorId) return campaign;
+
+  const creator = campaign.creators.find((item) => item.id === creatorId);
+  return creator ? { ...campaign, creators: [creator] } : null;
+}
+
 function isMissingRpcError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   return (
@@ -480,10 +505,12 @@ export async function getHoponRedeemCampaignByLink(
 
     if (!functionError) {
       const campaigns = normalizePublicRedeemCampaigns(functionCampaigns);
-      if (campaigns.length > 0) {
-        cacheVerifyAvatars(campaigns);
-        return applyCachedVerifyAvatars(campaigns)[0] ?? null;
+      const directCampaign = findDirectRedeemCampaign(campaigns, campaignId, creatorId);
+      if (directCampaign) {
+        cacheVerifyAvatars([directCampaign]);
+        return applyCachedVerifyAvatars([directCampaign])[0] ?? null;
       }
+      return null;
     } else {
       console.warn('[getHoponRedeemCampaignByLink] public function failed, falling back to RPC', functionError.message);
     }
@@ -495,8 +522,8 @@ export async function getHoponRedeemCampaignByLink(
 
     if (!rpcError) {
       const campaigns = normalizePublicRedeemCampaigns(rpcCampaigns);
-      if (campaigns.length > 0) return applyCachedVerifyAvatars(campaigns)[0] ?? null;
-      return null;
+      const directCampaign = findDirectRedeemCampaign(campaigns, campaignId, creatorId);
+      return directCampaign ? applyCachedVerifyAvatars([directCampaign])[0] ?? null : null;
     }
 
     if (!isMissingRpcError(rpcError)) {
@@ -525,13 +552,16 @@ export async function getHoponRedeemCampaignByLink(
       if (campaignError) console.warn('[getHoponRedeemCampaignByLink] campaign query failed', campaignError.message);
       return null;
     }
+    const campaignRow = campaign as unknown as RedeemCampaignRow;
 
     let applicationQuery = getClient()
       .from('applications')
       .select(`
         id,
+        campaign_id,
         status,
         creator_id,
+        verified_at,
         creator_profiles!applications_creator_id_fkey (
           id,
           name,
@@ -543,6 +573,7 @@ export async function getHoponRedeemCampaignByLink(
       `)
       .eq('campaign_id', campaignId)
       .eq('status', 'ACCEPTED')
+      .not('verified_at', 'is', null)
       .limit(50);
 
     if (creatorId) {
@@ -555,35 +586,22 @@ export async function getHoponRedeemCampaignByLink(
       return null;
     }
 
-    const creators = (applicationRows || [])
-      .map((row: any): HoponRedeemCreator | null => {
-        const creator = row.creator_profiles;
-        if (!creator?.id) return null;
-        return {
-          id: creator.id,
-          name: creator.name || creator.handle || 'Creator',
-          handle: normalizeHandle(creator.handle || creator.tiktok_handle),
-          avatarUrl: creator.avatar || null,
-          platform: platformLabel((campaign.platforms || [])[0]),
-          label: creatorLabel(creator.tags),
-        };
-      })
+    const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+      .map((row) => checkedInCreatorFromApplication(row, campaignId, campaignRow.platforms?.[0]))
       .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
 
     if (creators.length === 0) return null;
-    const restaurantProfile = Array.isArray(campaign.restaurant_profiles)
-      ? campaign.restaurant_profiles[0]
-      : campaign.restaurant_profiles;
+    const restaurantProfile = firstRelated(campaignRow.restaurant_profiles);
 
     return {
-      id: campaign.id,
-      title: campaign.title,
+      id: campaignRow.id,
+      title: campaignRow.title,
       merchantName: restaurantProfile?.name || 'Hopon merchant',
-      status: campaign.status,
+      status: campaignRow.status,
       offerType: 'percent_off',
       offerValue: 5,
-      startDate: campaign.start_date,
-      endDate: campaign.end_date,
+      startDate: campaignRow.start_date,
+      endDate: campaignRow.end_date,
       creators,
     };
   } catch (error) {
@@ -604,13 +622,11 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
       const campaigns = normalizePublicRedeemCampaigns(functionCampaigns);
       if (campaigns.length > 0) {
         cacheVerifyAvatars(campaigns);
-        return applyCachedVerifyAvatars(campaigns);
       }
+      return applyCachedVerifyAvatars(campaigns);
     }
     if (functionError) {
       console.warn('[listActiveHoponRedeemCampaigns] public function failed, falling back to RPC', functionError.message);
-    } else {
-      console.warn('[listActiveHoponRedeemCampaigns] public function returned no campaigns, falling back to RPC');
     }
 
     const { data: publicCampaigns, error: publicError } = await getClient().rpc('list_public_redeem_campaigns', {
@@ -652,16 +668,20 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
       console.warn('[listActiveHoponRedeemCampaigns] campaign query failed', error.message);
       return [];
     }
+    const campaignRows = (data || []) as unknown as RedeemCampaignRow[];
 
     const campaigns = await Promise.all(
-      (data || [])
-        .filter((campaign: any) => isLikelyPublicOpenCampaign(campaign))
-        .map(async (campaign: any): Promise<HoponRedeemCampaign | null> => {
+      campaignRows
+        .filter((campaign) => isLikelyPublicOpenCampaign(campaign))
+        .map(async (campaign): Promise<HoponRedeemCampaign | null> => {
           const { data: applicationRows, error: appError } = await getClient()
             .from('applications')
             .select(`
               id,
+              campaign_id,
               status,
+              creator_id,
+              verified_at,
               creator_profiles!applications_creator_id_fkey (
                 id,
                 name,
@@ -673,34 +693,24 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
             `)
             .eq('campaign_id', campaign.id)
             .eq('status', 'ACCEPTED')
+            .not('verified_at', 'is', null)
             .limit(50);
 
           if (appError) {
             console.warn('[listActiveHoponRedeemCampaigns] creator query failed', appError.message);
           }
 
-          const creators = (applicationRows || [])
-            .map((row: any): HoponRedeemCreator | null => {
-              const creator = row.creator_profiles;
-              if (!creator?.id) return null;
-              const platform = platformLabel((campaign.platforms || [])[0]);
-              return {
-                id: creator.id,
-                name: creator.name || creator.handle || 'Creator',
-                handle: normalizeHandle(creator.handle || creator.tiktok_handle),
-                avatarUrl: creator.avatar || null,
-                platform,
-                label: creatorLabel(creator.tags),
-              };
-            })
+          const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+            .map((row) => checkedInCreatorFromApplication(row, campaign.id, campaign.platforms?.[0]))
             .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
 
           if (creators.length === 0) return null;
+          const restaurantProfile = firstRelated(campaign.restaurant_profiles);
 
           return {
             id: campaign.id,
             title: campaign.title,
-            merchantName: campaign.restaurant_profiles?.name || 'Hopon merchant',
+            merchantName: restaurantProfile?.name || 'Hopon merchant',
             status: campaign.status,
             offerType: 'percent_off',
             offerValue: 5,

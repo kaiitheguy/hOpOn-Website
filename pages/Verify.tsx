@@ -3,7 +3,6 @@ import { CheckCircle2, ChevronLeft, Loader2, ReceiptText, Sparkles } from 'lucid
 import { useSearchParams } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandHeader';
 import {
-  fallbackRedeemCampaigns,
   getHoponRedeemCampaignByLink,
   getOrCreateVerifyAnonymousVisitor,
   isSupabaseConfigured,
@@ -141,59 +140,63 @@ function CreatorCard({
 
 export const Verify: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [campaigns, setCampaigns] = useState<HoponRedeemCampaign[]>(fallbackRedeemCampaigns);
+  const [campaigns, setCampaigns] = useState<HoponRedeemCampaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingDemo, setUsingDemo] = useState(false);
   const [step, setStep] = useState<RedeemStep>('campaign');
   const [selectedCampaignId, setSelectedCampaignId] = useState('');
   const [selectedCreatorId, setSelectedCreatorId] = useState('');
   const [redeemReady, setRedeemReady] = useState(false);
   const [initialSelectionApplied, setInitialSelectionApplied] = useState(false);
 
-  const requestedCampaignId = searchParams.get('campaign') ?? searchParams.get('campaignId') ?? searchParams.get('c') ?? '';
-  const requestedCreatorId = searchParams.get('creator') ?? searchParams.get('creatorId') ?? searchParams.get('cr') ?? '';
-  const forceDemo = searchParams.get('demo') === '1' || searchParams.get('demo') === 'true';
+  const requestedCampaignId = (
+    searchParams.get('campaign') ?? searchParams.get('campaignId') ?? searchParams.get('c') ?? ''
+  ).trim();
+  const requestedCreatorId = (
+    searchParams.get('creator') ?? searchParams.get('creatorId') ?? searchParams.get('cr') ?? ''
+  ).trim();
+  const hasDirectLinkRequest = Boolean(requestedCampaignId || requestedCreatorId);
 
   useEffect(() => {
     let mounted = true;
     async function loadCampaigns() {
       setLoading(true);
-      if (forceDemo) {
-        setCampaigns(fallbackRedeemCampaigns);
-        setUsingDemo(true);
+      setCampaigns([]);
+      setStep('campaign');
+      setSelectedCampaignId('');
+      setSelectedCreatorId('');
+      setRedeemReady(false);
+      setInitialSelectionApplied(false);
+
+      const configured = isSupabaseConfigured();
+      if (hasDirectLinkRequest) {
+        const directCampaign = configured && requestedCampaignId
+          ? await getHoponRedeemCampaignByLink(requestedCampaignId, requestedCreatorId || undefined)
+          : null;
+        if (!mounted) return;
+        const matchesDirectRequest = Boolean(
+          directCampaign &&
+          directCampaign.id === requestedCampaignId &&
+          (!requestedCreatorId || directCampaign.creators.some((creator) => creator.id === requestedCreatorId))
+        );
+        if (directCampaign && matchesDirectRequest) {
+          setCampaigns([directCampaign]);
+        }
         setLoading(false);
         return;
       }
-      const configured = isSupabaseConfigured();
-      if (configured && requestedCampaignId) {
-        const directCampaign = await getHoponRedeemCampaignByLink(requestedCampaignId, requestedCreatorId || undefined);
-        if (!mounted) return;
-        if (directCampaign) {
-          setCampaigns([directCampaign]);
-          setUsingDemo(false);
-          setLoading(false);
-          return;
-        }
-      }
+
       const liveCampaigns = await listActiveHoponRedeemCampaigns();
       if (!mounted) return;
-      if (liveCampaigns.length > 0) {
-        setCampaigns(liveCampaigns);
-        setUsingDemo(false);
-      } else if (!configured) {
-        setCampaigns(fallbackRedeemCampaigns);
-        setUsingDemo(true);
-      } else {
-        setCampaigns([]);
-        setUsingDemo(false);
-      }
+      setCampaigns(liveCampaigns);
       setLoading(false);
     }
     void loadCampaigns();
     return () => {
       mounted = false;
     };
-  }, [forceDemo, requestedCampaignId, requestedCreatorId]);
+  }, [hasDirectLinkRequest, requestedCampaignId, requestedCreatorId]);
+
+  const directLinkUnavailable = !loading && hasDirectLinkRequest && campaigns.length === 0;
 
   const selectedCampaign = useMemo(
     () => campaigns.find((campaign) => campaign.id === selectedCampaignId) || null,
@@ -249,7 +252,7 @@ export const Verify: React.FC = () => {
   const showToStaff = () => {
     if (!selectedCampaign || !selectedCreator) return;
     setRedeemReady(true);
-    if (!usingDemo && isSupabaseConfigured()) {
+    if (isSupabaseConfigured()) {
       void (async () => {
         const [anonymousVisitor, location] = await Promise.all([
           Promise.resolve(getOrCreateVerifyAnonymousVisitor()),
@@ -308,34 +311,44 @@ export const Verify: React.FC = () => {
 
           {!loading && step === 'campaign' ? (
             <section className="pt-6">
-              <div className="mb-4 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-hopon-red" />
-                <h2 className="font-display text-2xl font-bold text-hopon-black">Which offer are you here for?</h2>
-              </div>
-              {campaigns.length > 0 ? (
-                <div className="space-y-3">
-                  {campaigns.map((campaign) => (
-                    <CampaignCard
-                      key={campaign.id}
-                      campaign={campaign}
-                      selected={campaign.id === selectedCampaignId}
-                      onClick={() => chooseCampaign(campaign)}
-                    />
-                  ))}
-                </div>
-              ) : (
+              {directLinkUnavailable ? (
                 <div className="rounded-2xl border border-black/10 bg-hopon-grey p-5">
-                  <p className="font-display text-xl font-bold text-hopon-black">No open public offers right now.</p>
+                  <p className="font-display text-xl font-bold text-hopon-black">This offer is unavailable.</p>
                   <p className="mt-2 text-sm leading-6 text-black/60">
-                    Please ask staff if there is another Hopon campaign available today.
+                    This link is invalid, expired, or does not match a checked-in creator for this campaign.
+                    Please ask staff for a current Hopon offer.
                   </p>
                 </div>
+              ) : (
+                <>
+                  <div className="mb-4 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-hopon-red" />
+                    <h2 className="font-display text-2xl font-bold text-hopon-black">Which offer are you here for?</h2>
+                  </div>
+                  {campaigns.length > 0 ? (
+                    <div className="space-y-3">
+                      {campaigns.map((campaign) => (
+                        <CampaignCard
+                          key={campaign.id}
+                          campaign={campaign}
+                          selected={campaign.id === selectedCampaignId}
+                          onClick={() => chooseCampaign(campaign)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-black/10 bg-hopon-grey p-5">
+                      <p className="font-display text-xl font-bold text-hopon-black">
+                        No Hopon offers are available right now.
+                      </p>
+                      <p className="mt-2 text-sm leading-6 text-black/60">
+                        An offer becomes available after its creator checks in for that campaign. Please ask staff
+                        if another offer is available today.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
-              {usingDemo ? (
-                <p className="mt-4 text-xs leading-5 text-black/50">
-                  Demo offers are showing because live campaigns are unavailable or not configured.
-                </p>
-              ) : null}
             </section>
           ) : null}
 
@@ -353,16 +366,27 @@ export const Verify: React.FC = () => {
                 <p className="font-mono text-xs uppercase text-hopon-red">{selectedCampaign.title}</p>
                 <h2 className="mt-2 font-display text-2xl font-bold text-hopon-black">Who brought you here?</h2>
               </div>
-              <div className="space-y-3">
-                {selectedCampaign.creators.map((creator) => (
-                  <CreatorCard
-                    key={creator.id}
-                    creator={creator}
-                    selected={creator.id === selectedCreatorId}
-                    onClick={() => chooseCreator(creator)}
-                  />
-                ))}
-              </div>
+              {selectedCampaign.creators.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedCampaign.creators.map((creator) => (
+                    <CreatorCard
+                      key={creator.id}
+                      creator={creator}
+                      selected={creator.id === selectedCreatorId}
+                      onClick={() => chooseCreator(creator)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-black/10 bg-hopon-grey p-5">
+                  <p className="font-display text-xl font-bold text-hopon-black">
+                    No checked-in creators are available for this offer.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-black/60">
+                    Please ask staff if another Hopon offer is available today.
+                  </p>
+                </div>
+              )}
             </section>
           ) : null}
 
