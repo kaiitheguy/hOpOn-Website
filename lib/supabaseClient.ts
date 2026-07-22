@@ -174,6 +174,35 @@ export type HoponRedeemCampaign = {
   creators: HoponRedeemCreator[];
 };
 
+export type HoponRedemptionLinkTarget = {
+  campaignId: string;
+  creatorId: string;
+  slug: string;
+};
+
+export async function resolveHoponRedemptionLink(
+  slug: string
+): Promise<HoponRedemptionLinkTarget | null> {
+  const normalizedSlug = slug.trim().toLowerCase();
+  if (!isSupabaseConfigured() || !normalizedSlug) return null;
+
+  const { data, error } = await getClient().rpc('resolve_public_redemption_link', {
+    p_slug: normalizedSlug,
+  });
+  if (error) {
+    console.warn('[resolve_public_redemption_link]', error.message);
+    return null;
+  }
+
+  const row = data as Record<string, unknown> | null;
+  const campaignId = typeof row?.campaignId === 'string' ? row.campaignId : '';
+  const creatorId = typeof row?.creatorId === 'string' ? row.creatorId : '';
+  const resolvedSlug = typeof row?.slug === 'string' ? row.slug : normalizedSlug;
+  return campaignId && creatorId
+    ? { campaignId, creatorId, slug: resolvedSlug }
+    : null;
+}
+
 type SupabaseRelation<T> = T | T[] | null;
 
 type RedeemCreatorProfileRow = {

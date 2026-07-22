@@ -34,6 +34,7 @@ import { AdminSourcingDetail } from './pages/admin/AdminSourcingDetail';
 import { AdminGrowthLeads } from './pages/admin/AdminGrowthLeads';
 import { AdminCampaignMonitor } from './pages/admin/AdminCampaignMonitor';
 import { CreatorInvite } from './pages/creator/CreatorInvite';
+import { RedemptionShortLink } from './pages/RedemptionShortLink';
 import { GeoMerchantPage } from './components/GeoMerchantPage';
 import { GeoDiscoveryPage } from './components/GeoDiscoveryPage';
 import { GeoDirectoryPage } from './components/GeoDirectoryPage';
@@ -50,6 +51,7 @@ root.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/verify" element={<Verify />} />
+        <Route path="/r/:slug" element={<RedemptionShortLink />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />

@@ -125,6 +125,7 @@ export interface Application {
   appliedAt?: string | null;
   verification_code?: string | null;
   verificationCode?: string | null;
+  redemptionSlug?: string | null;
   scheduleStatus?: 'not_started' | 'pending' | 'confirmed' | 'expired' | string | null;
   scheduleDeadline?: string | null;
   confirmedVisitTime?: string | null;

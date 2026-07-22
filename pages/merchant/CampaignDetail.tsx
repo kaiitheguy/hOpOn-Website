@@ -32,8 +32,9 @@ function formatFollowers(value?: number | null): string {
   return String(value);
 }
 
-function buildCreatorVerifyUrl(campaignId: string, creatorId: string): string {
+function buildCreatorVerifyUrl(campaignId: string, creatorId: string, redemptionSlug?: string | null): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.thehoponapp.com';
+  if (redemptionSlug) return `${origin}/r/${encodeURIComponent(redemptionSlug)}`;
   const params = new URLSearchParams({
     campaign: campaignId,
     creator: creatorId,
@@ -134,9 +135,9 @@ export const CampaignDetail: React.FC = () => {
     }
   };
 
-  const copyVerifyLink = async (creatorId: string) => {
+  const copyVerifyLink = async (creatorId: string, redemptionSlug?: string | null) => {
     if (!campaign) return;
-    const url = buildCreatorVerifyUrl(campaign.id, creatorId);
+    const url = buildCreatorVerifyUrl(campaign.id, creatorId, redemptionSlug);
     try {
       await navigator.clipboard.writeText(url);
       setCopiedVerifyCreatorId(creatorId);
@@ -435,7 +436,7 @@ export const CampaignDetail: React.FC = () => {
                       {creatorId && (
                         <button
                           type="button"
-                          onClick={() => copyVerifyLink(creatorId)}
+                          onClick={() => copyVerifyLink(creatorId, app.redemptionSlug)}
                           className="px-3 py-1.5 border-2 border-black font-mono text-xs uppercase hover:bg-hopon-grey"
                         >
                           {copiedVerifyCreatorId === creatorId ? (isZh ? '已复制' : 'Copied') : (isZh ? '复制兑换链接' : 'Copy verify link')}
