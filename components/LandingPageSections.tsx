@@ -5,6 +5,8 @@ import {
   Building2,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   MessageSquareText,
   Gift,
   MousePointerClick,
@@ -48,6 +50,75 @@ type SubscriptionTier = {
   bullets: string[];
   featured?: boolean;
 };
+
+function AnimatedValue({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useEffect(() => {
+    const node = ref.current;
+    const normalized = value.replace(/,/g, '');
+    const parsed = normalized.match(/^([^0-9]*)([0-9]+(?:\.[0-9]+)?)(.*)$/);
+    if (!node || !parsed) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const [, prefix, numericValue, suffix] = parsed;
+    const target = Number(numericValue);
+    const preserveThousands = value.includes(',');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!Number.isFinite(target) || reducedMotion) {
+      setDisplayValue(value);
+      return;
+    }
+
+    let frame = 0;
+    let startedAt = 0;
+    const format = (current: number) => {
+      const rounded = Math.round(current);
+      return `${prefix}${preserveThousands ? rounded.toLocaleString('en-US') : rounded}${suffix}`;
+    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        observer.disconnect();
+        setDisplayValue(format(0));
+        const tick = (timestamp: number) => {
+          if (!startedAt) startedAt = timestamp;
+          const progress = Math.min((timestamp - startedAt) / 760, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          setDisplayValue(format(target * eased));
+          if (progress < 1) frame = window.requestAnimationFrame(tick);
+        };
+        frame = window.requestAnimationFrame(tick);
+      },
+      { threshold: 0.65 }
+    );
+
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [value]);
+
+  return <span ref={ref}>{displayValue}</span>;
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReduced(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  return reduced;
+}
 
 const steps: DemoStep[] = [
   {
@@ -201,7 +272,7 @@ function AnimatedSection({
 }) {
   const [ref, isVisible] = useIntersectionObserver({ threshold: 0.12, rootMargin: '0px 0px -70px 0px' });
   return (
-    <section id={id} className={`relative scroll-mt-24 overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
+    <section id={id} className={`relative overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
       <div
         ref={ref}
         className={`mx-auto max-w-7xl transition-all duration-700 ease-out ${
@@ -214,9 +285,9 @@ function AnimatedSection({
   );
 }
 
-function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId, HTMLDivElement | null>>] {
+function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId, HTMLElement | null>>] {
   const [active, setActive] = useState<DemoStepId>('profile');
-  const refs = useRef<Record<DemoStepId, HTMLDivElement | null>>({
+  const refs = useRef<Record<DemoStepId, HTMLElement | null>>({
     profile: null,
     campaign: null,
     creators: null,
@@ -237,7 +308,7 @@ function useScrollStep(): [DemoStepId, React.MutableRefObject<Record<DemoStepId,
       { threshold: [0.45, 0.65, 0.85], rootMargin: '-30% 0px -42% 0px' }
     );
 
-    Object.values(refs.current).forEach((node: HTMLDivElement | null) => {
+    Object.values(refs.current).forEach((node: HTMLElement | null) => {
       if (node) observer.observe(node);
     });
     return () => observer.disconnect();
@@ -250,13 +321,13 @@ function PhoneFrame({ children, compact = false }: { children: React.ReactNode; 
   return (
     <div
       className={`relative mx-auto rounded-[40px] border-[8px] border-hopon-black bg-hopon-black shadow-[0_22px_70px_rgba(0,0,0,0.22)] md:rounded-[46px] md:border-[10px] ${
-        compact ? 'w-[210px] sm:w-[228px]' : 'w-[286px] md:w-[304px]'
+        compact ? 'w-[calc(100vw-40px)] max-w-[318px] sm:w-[318px]' : 'w-[286px] md:w-[304px]'
       }`}
     >
       <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-hopon-black md:h-6 md:w-24" />
       <div
         className={`overflow-hidden rounded-[30px] bg-[#F8F6F1] md:rounded-[34px] ${
-          compact ? 'h-[405px] sm:h-[430px]' : 'h-[620px] md:h-[660px]'
+          compact ? 'h-[560px] sm:h-[580px]' : 'h-[620px] md:h-[660px]'
         }`}
       >
         {children}
@@ -267,13 +338,13 @@ function PhoneFrame({ children, compact = false }: { children: React.ReactNode; 
 
 function ScreenHeader({ title, subtitle, compact = false }: { title: string; subtitle: string; compact?: boolean }) {
   return (
-    <div className={`border-b border-black/10 bg-white px-4 ${compact ? 'pb-2 pt-6' : 'pb-3 pt-9'}`}>
-      <div className={`${compact ? 'mb-2' : 'mb-3'} flex items-center justify-between text-[10px] text-black/40`}>
+    <div className={`border-b border-black/10 bg-white px-4 ${compact ? 'pb-3 pt-7' : 'pb-3 pt-9'}`}>
+      <div className={`${compact ? 'mb-2.5' : 'mb-3'} flex items-center justify-between text-[10px] text-black/40`}>
         <span className="font-mono">9:41</span>
         <span className="rounded-full bg-black/5 px-2 py-1 font-mono uppercase">hOpOn</span>
       </div>
-      <p className="font-mono text-[10px] uppercase text-black/50">{subtitle}</p>
-      <h3 className={`${compact ? 'text-xl' : 'text-2xl'} mt-1 font-display font-bold leading-[1.05] text-hopon-black`}>{title}</h3>
+      <p className={`font-mono uppercase text-black/50 ${compact ? 'text-[11px]' : 'text-[10px]'}`}>{subtitle}</p>
+      <h3 className={`${compact ? 'text-[22px]' : 'text-2xl'} mt-1 font-display font-bold leading-[1.05] text-hopon-black`}>{title}</h3>
     </div>
   );
 }
@@ -306,7 +377,7 @@ function Metric({ label, value, tone = 'light' }: { label: string; value: string
 function ProfileScreen({ compact = false }: { compact?: boolean }) {
   return (
     <>
-      <div className={`relative overflow-hidden ${compact ? 'h-32' : 'h-44'}`}>
+      <div className={`relative overflow-hidden ${compact ? 'h-40' : 'h-44'}`}>
         <img src="/assets/premium-asian-bakery-campaign.png" alt="" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute left-4 top-10">
@@ -314,7 +385,7 @@ function ProfileScreen({ compact = false }: { compact?: boolean }) {
         </div>
         <div className="absolute bottom-4 left-5 right-5 text-white">
           <p className="font-mono text-[10px] uppercase text-white/70">Merchant Profile</p>
-          <h3 className={`${compact ? 'text-2xl' : 'text-3xl'} mt-1 font-display font-bold`}>Atelier Matcha</h3>
+          <h3 className="mt-1 font-display text-3xl font-bold">Atelier Matcha</h3>
         </div>
       </div>
       <div className={compact ? 'p-3' : 'p-4'}>
@@ -323,7 +394,7 @@ function ProfileScreen({ compact = false }: { compact?: boolean }) {
             <p className="font-display text-base font-bold">Growth positioning</p>
             <Sparkles className="h-4 w-4 text-hopon-red" />
           </div>
-          <p className={`${compact ? 'text-xs leading-4' : 'text-sm leading-5'} mt-1.5 text-black/65`}>Premium matcha desserts for weekend visits.</p>
+          <p className="mt-1.5 text-sm leading-5 text-black/65">Premium matcha desserts for weekend visits.</p>
         </div>
         <div className={`mt-3 grid gap-2 ${compact ? 'hidden' : ''}`}>
           {['East Village', 'Dessert audience', 'Slow weekdays'].map((item) => (
@@ -346,13 +417,13 @@ function CampaignScreen({ compact = false }: { compact?: boolean }) {
         <div className={`rounded-3xl border border-hopon-red/20 bg-[#FFF5F5] shadow-[0_12px_36px_rgba(255,42,42,0.10)] ${compact ? 'p-3' : 'p-3.5'}`}>
           <AiLabel>Campaign ready</AiLabel>
           <p className="mt-3 font-display text-lg font-bold text-hopon-black">Weekend dessert run</p>
-          <p className={`${compact ? 'text-xs leading-4' : 'text-sm leading-5'} mt-1.5 text-black/65`}>Turn the new roll into weekend visits.</p>
+          <p className="mt-1.5 text-sm leading-5 text-black/65">Turn the new roll into weekend visits.</p>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <Metric label="Target" value="Dessert Fans" />
           <Metric label="Creators" value="8" tone="gold" />
         </div>
-        <div className={`mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)] ${compact ? 'hidden' : ''}`}>
+        <div className="mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)]">
           <div className="mb-2 flex items-center justify-between gap-3">
             <p className="font-display text-base font-bold text-hopon-black">Creator brief</p>
             <span className="rounded-full bg-[#EAF4EF] px-2 py-1 font-mono text-[10px] uppercase text-[#2F7D5B]">Ready</span>
@@ -374,7 +445,7 @@ function CreatorsScreen({ compact = false }: { compact?: boolean }) {
     <>
       <ScreenHeader title="Creator matches" subtitle="Chinese creators in NYC" compact={compact} />
       <div className={`space-y-2 ${compact ? 'p-3' : 'p-4'}`}>
-        {creators.slice(0, compact ? 2 : 3).map((creator) => (
+        {creators.slice(0, 3).map((creator) => (
           <div key={creator.handle} className="flex items-center gap-3 rounded-3xl bg-white p-2.5 shadow-[0_12px_34px_rgba(0,0,0,0.06)]">
             <img src={creator.avatar} alt="" className={`${compact ? 'h-10 w-10' : 'h-12 w-12'} shrink-0 rounded-full object-cover`} />
             <div className="min-w-0 flex-1">
@@ -409,7 +480,7 @@ function ReviewScreen({ compact = false }: { compact?: boolean }) {
             <MessageSquareText className="h-5 w-5 text-hopon-red" />
           </div>
           <p className="font-display text-lg font-bold leading-tight text-hopon-black">Make the first bite the hook.</p>
-          <p className={`${compact ? 'hidden' : 'mt-1.5 text-sm leading-5'} text-black/65`}>Suggested revision for stronger local response.</p>
+          <p className="mt-1.5 text-sm leading-5 text-black/65">Suggested revision for stronger local response.</p>
         </div>
 
         <div className="mt-3 rounded-3xl bg-white p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.06)]">
@@ -529,13 +600,66 @@ function RoiScreen({ compact = false }: { compact?: boolean }) {
 
 function PhoneScreen({ active, compact = false }: { active: DemoStepId; compact?: boolean }) {
   return (
-    <div key={active} className="demo-phone-screen">
+    <>
       {active === 'profile' && <ProfileScreen compact={compact} />}
-      {active === 'campaign' && <CampaignScreen compact={compact} />}
+      {active === 'campaign' && <CampaignJourneyScreen compact={compact} />}
       {active === 'creators' && <CreatorsScreen compact={compact} />}
       {active === 'review' && <ReviewScreen compact={compact} />}
       {active === 'conversion' && <ConversionScreen compact={compact} />}
       {active === 'roi' && <RoiScreen compact={compact} />}
+    </>
+  );
+}
+
+function CampaignJourneyScreen({ compact = false }: { compact?: boolean }) {
+  const phases: DemoStepId[] = ['campaign', 'creators', 'review'];
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
+  const phase = phases[phaseIndex];
+
+  useEffect(() => {
+    setPhaseIndex(0);
+    if (reducedMotion) return undefined;
+    const timer = window.setInterval(() => {
+      setPhaseIndex((current) => (current + 1) % phases.length);
+    }, 3400);
+    return () => window.clearInterval(timer);
+  }, [reducedMotion]);
+
+  return (
+    <div className="relative h-full">
+      <div key={phase} className="demo-phone-inner-swap">
+        {phase === 'campaign' && <CampaignScreen compact={compact} />}
+        {phase === 'creators' && <CreatorsScreen compact={compact} />}
+        {phase === 'review' && <ReviewScreen compact={compact} />}
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-2.5 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.10)] backdrop-blur"
+      >
+        {phases.map((item, index) => (
+          <span
+            key={item}
+            className={`h-1.5 rounded-full transition-all duration-300 ${index === phaseIndex ? 'w-5 bg-hopon-red' : 'w-1.5 bg-black/20'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnimatedPhoneScreen({ active, compact = false }: { active: DemoStepId; compact?: boolean }) {
+  const previousIndex = useRef(steps.findIndex((step) => step.id === active));
+  const currentIndex = steps.findIndex((step) => step.id === active);
+  const direction = currentIndex >= previousIndex.current ? 'forward' : 'backward';
+
+  useEffect(() => {
+    previousIndex.current = currentIndex;
+  }, [currentIndex]);
+
+  return (
+    <div key={active} className={`demo-phone-screen demo-phone-${direction}`}>
+      <PhoneScreen active={active} compact={compact} />
     </div>
   );
 }
@@ -572,39 +696,61 @@ function MobileDemoStepper() {
         finishSwipe(touch.clientX, touch.clientY);
       }}
     >
-      <div key={active} className="demo-mobile-step-card rounded-2xl border border-black/10 bg-[#F7F2E8] px-3 py-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
+      <div key={active} className="demo-mobile-step-card rounded-2xl border border-black/10 bg-[#F7F2E8] px-4 py-3.5 shadow-[0_12px_30px_rgba(0,0,0,0.06)]">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase text-hopon-red">{step.eyebrow}</p>
-            <h3 className="truncate font-display text-lg font-bold leading-tight text-hopon-black">{step.title}</h3>
+            <h3 className="mt-1 font-display text-lg font-bold leading-tight text-hopon-black">{step.title}</h3>
           </div>
           <p className="font-mono text-xs uppercase text-black/40">
             {activeIndex + 1}/{steps.length}
           </p>
         </div>
 
-        <div className="mt-1.5 flex items-center justify-between gap-4">
-          <p className="font-mono text-[9px] uppercase text-black/45">Swipe</p>
-          <div className="flex flex-1 justify-end gap-1.5" aria-label="Demo progress">
-          {steps.map((item, index) => (
-            <span
-              key={item.id}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                active === item.id
-                  ? 'w-8 bg-hopon-red'
-                  : index < activeIndex
-                    ? 'w-5 bg-hopon-black/35'
-                    : 'w-5 bg-hopon-black/15'
-              }`}
-            />
-          ))}
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            aria-label="Previous demo step"
+            disabled={activeIndex === 0}
+            onClick={() => moveStep(-1)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-hopon-black transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-25"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <div className="flex flex-1 items-center justify-center gap-2" aria-label="Demo progress">
+            {steps.map((item, index) => (
+              <button
+                type="button"
+                key={item.id}
+                aria-label={`Show demo step ${index + 1}: ${item.title}`}
+                aria-current={active === item.id ? 'step' : undefined}
+                onClick={() => setActive(item.id)}
+                className={`h-2.5 rounded-full transition-all duration-300 active:scale-90 ${
+                  active === item.id
+                    ? 'w-10 bg-hopon-red'
+                    : index < activeIndex
+                      ? 'w-6 bg-hopon-black/35'
+                      : 'w-6 bg-hopon-black/15'
+                }`}
+              />
+            ))}
           </div>
+          <button
+            type="button"
+            aria-label="Next demo step"
+            disabled={activeIndex === steps.length - 1}
+            onClick={() => moveStep(1)}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-black/10 bg-white text-hopon-black transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-25"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
+        <p className="mt-2 text-center font-mono text-[9px] uppercase text-black/45">Swipe or tap a step</p>
       </div>
 
-      <div className="mt-2 touch-pan-y">
+      <div className="mt-3 touch-pan-y">
         <PhoneFrame compact>
-          <PhoneScreen active={active} compact />
+          <AnimatedPhoneScreen active={active} compact />
         </PhoneFrame>
       </div>
     </div>
@@ -617,9 +763,9 @@ export const InteractiveProductDemo: React.FC = () => {
   const visible = manualActive || active;
 
   return (
-    <section id="demo" className="scroll-mt-24 bg-white px-5 py-5 md:px-12 md:py-28 lg:px-16">
+    <section id="demo" className="bg-white px-5 py-8 md:px-12 md:py-28 lg:px-16">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-4 max-w-3xl md:mb-12">
+        <div className="mb-6 max-w-3xl md:mb-12">
           <p className="mb-3 font-mono text-xs uppercase text-black/50">Demo mechanism</p>
           <h2 className="font-display text-3xl font-bold leading-tight text-hopon-black md:text-6xl">
             From Creator Content to Measurable Growth
@@ -632,31 +778,36 @@ export const InteractiveProductDemo: React.FC = () => {
           <div>
           <div className="space-y-10 lg:space-y-24">
             {steps.map((step) => (
-              <div
+              <button
+                type="button"
                 key={step.id}
                 ref={(node) => {
                   refs.current[step.id] = node;
                 }}
                 data-step={step.id}
-                className={`min-h-[300px] rounded-3xl border p-6 transition-all duration-500 ease-out ${
+                aria-pressed={visible === step.id}
+                className={`min-h-[300px] w-full rounded-3xl border p-6 text-left transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-hopon-red/30 ${
                   visible === step.id
                     ? 'translate-y-[-4px] border-black bg-[#F7F2E8] shadow-[0_18px_60px_rgba(0,0,0,0.10)]'
                     : 'translate-y-0 border-black/10 bg-white shadow-none'
                 }`}
                 onMouseEnter={() => setManualActive(step.id)}
                 onMouseLeave={() => setManualActive(null)}
+                onFocus={() => setManualActive(step.id)}
+                onBlur={() => setManualActive(null)}
+                onClick={() => setManualActive(step.id)}
               >
                 <p className="font-mono text-xs uppercase text-hopon-red">{step.eyebrow}</p>
                 <h3 className="mt-4 font-display text-4xl font-bold leading-tight text-hopon-black">{step.title}</h3>
                 <p className="mt-4 max-w-xl text-base leading-7 text-black/70">{step.copy}</p>
-              </div>
+              </button>
             ))}
           </div>
           </div>
 
           <div className="lg:sticky lg:top-28 lg:self-start">
             <PhoneFrame>
-              <PhoneScreen active={visible} />
+              <AnimatedPhoneScreen active={visible} />
             </PhoneFrame>
           </div>
         </div>
@@ -715,7 +866,7 @@ export const GrowthProofSection: React.FC = () => {
                 <p className="font-mono text-[10px] uppercase text-black/45">Measured result</p>
                 <div className="mt-2 flex items-end gap-2">
                   <span className="font-display text-5xl font-bold leading-none text-hopon-black md:text-6xl">
-                    {item.result}
+                    <AnimatedValue value={item.result} />
                   </span>
                   <span className="pb-1 font-mono text-xs uppercase leading-4 text-hopon-red">{item.resultLabel}</span>
                 </div>
@@ -727,7 +878,7 @@ export const GrowthProofSection: React.FC = () => {
                     key={`${item.businessType}-${kpi.label}`}
                     className={`min-w-0 p-3 ${index > 0 ? 'border-l border-black/10' : ''}`}
                   >
-                    <p className="font-display text-xl font-bold leading-tight text-hopon-black">{kpi.value}</p>
+                    <p className="font-display text-xl font-bold leading-tight text-hopon-black"><AnimatedValue value={kpi.value} /></p>
                     <p className="mt-1 text-[11px] font-medium leading-4 text-black/55">{kpi.label}</p>
                   </div>
                 ))}

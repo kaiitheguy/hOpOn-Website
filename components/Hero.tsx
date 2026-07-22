@@ -232,25 +232,26 @@ function HeroVisual() {
 
 export const Hero: React.FC = () => {
   const [ref, isVisible] = useIntersectionObserver();
+  const revealState = isVisible ? 'fade-up-active' : '';
 
   return (
     <header id="top" className="relative overflow-hidden bg-[#F7F2E8] px-6 pb-16 pt-32 md:px-12 lg:px-16">
       <div ref={ref} className="mx-auto grid min-h-[82vh] max-w-7xl items-center gap-12 lg:grid-cols-[0.88fr_1.12fr]">
-        <div className={`fade-up-enter ${isVisible ? 'fade-up-active' : ''}`}>
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 font-mono text-xs uppercase text-black/60">
+        <div>
+          <p className={`fade-up-enter ${revealState} mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 font-mono text-xs uppercase text-black/60`}>
             <TrendingUp className="h-4 w-4 text-hopon-red" />
             Agentic Growth Platform for Local Businesses
           </p>
-          <h1 className="font-display text-4xl font-bold leading-[0.98] text-hopon-black md:text-7xl lg:text-8xl">
+          <h1 className={`fade-up-enter stagger-1 ${revealState} font-display text-4xl font-bold leading-[0.98] text-hopon-black md:text-7xl lg:text-8xl`}>
             Stop Paying for Marketing You Can't Measure
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-black/70 md:text-xl md:leading-8">
+          <p className={`fade-up-enter stagger-2 ${revealState} mt-5 max-w-xl text-base leading-7 text-black/70 md:text-xl md:leading-8`}>
             Reach high-intent local customers through creators, unlock audiences other platforms miss, and measure every visit, conversion, and dollar of growth.
           </p>
-          <div className="mt-6 lg:hidden">
+          <div className={`fade-up-enter stagger-3 ${revealState} mt-6 lg:hidden`}>
             <MobileHeroVisual />
           </div>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row md:mt-9">
+          <div className={`fade-up-enter stagger-3 ${revealState} mt-6 flex flex-col gap-3 sm:flex-row md:mt-9`}>
             <Link
               to="/merchant/signup"
               className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg bg-hopon-black px-6 py-4 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red"
@@ -260,10 +261,10 @@ export const Hero: React.FC = () => {
             </Link>
             <AppStoreBadge />
           </div>
-          <p className="mt-4 font-mono text-xs uppercase text-black/50">Every visit, conversion, and dollar accounted for.</p>
+          <p className={`fade-up-enter stagger-4 ${revealState} mt-4 font-mono text-xs uppercase text-black/50`}>Every visit, conversion, and dollar accounted for.</p>
         </div>
 
-        <div className={`relative hidden fade-up-enter lg:block ${isVisible ? 'fade-up-active stagger-2' : ''}`}>
+        <div className={`relative hidden fade-up-enter stagger-2 lg:block ${revealState}`}>
           <HeroVisual />
         </div>
       </div>

@@ -39,6 +39,13 @@
       }
     </script>
     <style>
+      :root {
+        --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --motion-fast: 220ms;
+        --motion-state: 360ms;
+        --motion-enter: 680ms;
+      }
+
       html {
         scroll-behavior: smooth;
         scroll-padding-top: 100px;
@@ -57,11 +64,13 @@
       .fade-up-enter {
         opacity: 0;
         transform: translateY(20px);
-        transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        filter: blur(6px);
+        transition: opacity var(--motion-enter) var(--motion-ease), transform var(--motion-enter) var(--motion-ease), filter var(--motion-enter) var(--motion-ease);
       }
       .fade-up-active {
         opacity: 1;
         transform: translateY(0);
+        filter: blur(0);
       }
       
       .stagger-1 { transition-delay: 100ms; }
@@ -101,10 +110,12 @@
       }
 
       .hero-float-delay {
+        animation-duration: 6.4s;
         animation-delay: 900ms;
       }
 
       .hero-float-delay-2 {
+        animation-duration: 7.2s;
         animation-delay: 1600ms;
       }
 
@@ -124,9 +135,18 @@
       }
 
       .demo-phone-screen {
-        animation: demo-phone-swap 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: demo-phone-swap var(--motion-state) var(--motion-ease) both;
         will-change: transform, opacity;
         backface-visibility: hidden;
+      }
+
+      .demo-phone-backward {
+        animation-name: demo-phone-swap-backward;
+      }
+
+      .demo-phone-inner-swap {
+        animation: demo-phone-inner-swap 420ms var(--motion-ease) both;
+        will-change: transform, opacity;
       }
 
       .demo-mobile-step-card {
@@ -138,6 +158,28 @@
         0% {
           opacity: 0;
           transform: translate3d(18px, 0, 0) scale(0.985);
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+      }
+
+      @keyframes demo-phone-swap-backward {
+        0% {
+          opacity: 0;
+          transform: translate3d(-18px, 0, 0) scale(0.985);
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+      }
+
+      @keyframes demo-phone-inner-swap {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 10px, 0) scale(0.99);
         }
         100% {
           opacity: 1;
@@ -157,10 +199,23 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+
+        .fade-up-enter,
+        .fade-up-active {
+          opacity: 1;
+          transform: none;
+          filter: none;
+          transition: none;
+        }
+
         .hero-phone-shell,
         .hero-phone-image,
         .hero-float-card,
         .demo-phone-screen,
+        .demo-phone-inner-swap,
         .demo-mobile-step-card {
           animation: none;
         }
