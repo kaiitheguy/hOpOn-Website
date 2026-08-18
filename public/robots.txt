@@ -1,0 +1,50 @@
+# Public pages are crawlable by default. /merchant/:slug remains public.
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /auth
+Disallow: /api
+Disallow: /verify
+Disallow: /r/
+Disallow: /redeem
+Disallow: /redemption
+Disallow: /referral
+Disallow: /creator/invite
+Disallow: /pending
+Disallow: /rejected
+Disallow: /reset-password
+
+# Block fixed merchant app routes without blocking public /merchant/:slug pages.
+Disallow: /merchant$
+Disallow: /merchant/$
+Disallow: /merchant/login$
+Disallow: /merchant/login/
+Disallow: /merchant/signup$
+Disallow: /merchant/signup/
+Disallow: /merchant/growth$
+Disallow: /merchant/growth/
+Disallow: /merchant/campaigns$
+Disallow: /merchant/campaigns/
+Disallow: /merchant/campaign$
+Disallow: /merchant/campaign/
+Disallow: /merchant/review$
+Disallow: /merchant/review/
+Disallow: /merchant/hunt$
+Disallow: /merchant/hunt/
+Disallow: /merchant/achievements$
+Disallow: /merchant/achievements/
+Disallow: /merchant/profile$
+Disallow: /merchant/profile/
+Disallow: /merchant/notifications$
+Disallow: /merchant/notifications/
+Disallow: /merchant/creator$
+Disallow: /merchant/creator/
+Disallow: /merchant/application$
+Disallow: /merchant/application/
+Disallow: /merchant/applicants$
+Disallow: /merchant/applicants/
+Disallow: /merchant/deliverables$
+Disallow: /merchant/deliverables/
+
+Sitemap: https://www.thehoponapp.com/sitemap.xml
