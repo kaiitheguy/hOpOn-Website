@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BrandHeader } from '../components/BrandHeader';
-import { resolveHoponRedemptionLink } from '../lib/supabaseClient';
+import {
+  getOrCreateVerifyAnonymousVisitor,
+  resolveHoponRedemptionLink,
+  trackHoponRedemptionLinkClick,
+} from '../lib/supabaseClient';
 
 export const RedemptionShortLink: React.FC = () => {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -19,6 +23,13 @@ export const RedemptionShortLink: React.FC = () => {
         setNotFound(true);
         return;
       }
+
+      // Count only successfully resolved public short links. The database uses
+      // its own clock and a 30-minute visitor bucket, so refreshes and React
+      // StrictMode replays cannot inflate the click count.
+      const anonymousVisitor = getOrCreateVerifyAnonymousVisitor();
+      await trackHoponRedemptionLinkClick(target.slug, anonymousVisitor);
+      if (!mounted) return;
 
       const params = new URLSearchParams({
         campaign: target.campaignId,

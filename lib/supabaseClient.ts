@@ -180,6 +180,12 @@ export type HoponRedemptionLinkTarget = {
   slug: string;
 };
 
+export type HoponRedemptionLinkClickResult = {
+  ok: boolean;
+  duplicate: boolean;
+  clickId: string | null;
+};
+
 export async function resolveHoponRedemptionLink(
   slug: string
 ): Promise<HoponRedemptionLinkTarget | null> {
@@ -201,6 +207,44 @@ export async function resolveHoponRedemptionLink(
   return campaignId && creatorId
     ? { campaignId, creatorId, slug: resolvedSlug }
     : null;
+}
+
+export async function trackHoponRedemptionLinkClick(
+  slug: string,
+  anonymousVisitor: HoponAnonymousVisitor
+): Promise<HoponRedemptionLinkClickResult> {
+  const normalizedSlug = slug.trim().toLowerCase();
+  if (!isSupabaseConfigured() || !normalizedSlug || !anonymousVisitor.id) {
+    return { ok: false, duplicate: false, clickId: null };
+  }
+
+  try {
+    const { data, error } = await getClient().rpc('record_public_redemption_link_click', {
+      p_slug: normalizedSlug,
+      p_anonymous_visitor_id: anonymousVisitor.id,
+      p_visitor_id_scope: anonymousVisitor.scope,
+      p_metadata: {
+        source: 'website_short_link',
+        landing_path: `/r/${normalizedSlug}`,
+        platform: 'web',
+      },
+    });
+
+    if (error) {
+      console.warn('[record_public_redemption_link_click]', error.message);
+      return { ok: false, duplicate: false, clickId: null };
+    }
+
+    const row = data as Record<string, unknown> | null;
+    return {
+      ok: row?.ok === true,
+      duplicate: row?.duplicate === true,
+      clickId: typeof row?.click_id === 'string' ? row.click_id : null,
+    };
+  } catch (error) {
+    console.warn('[record_public_redemption_link_click]', error);
+    return { ok: false, duplicate: false, clickId: null };
+  }
 }
 
 type SupabaseRelation<T> = T | T[] | null;
