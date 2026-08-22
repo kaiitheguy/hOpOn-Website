@@ -20,6 +20,7 @@ import {
   completeMerchantSignupProfile,
   type MerchantSignupProfile,
 } from '../../lib/merchant/signupProfile';
+import { LEGAL_VERSION } from '../../lib/legal';
 
 type Step = 0 | 1 | 2;
 
@@ -31,6 +32,7 @@ export const MerchantSignup: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
@@ -99,6 +101,7 @@ export const MerchantSignup: React.FC = () => {
     errorAccountStarted: 'This email has already started signup. Please check your confirmation email, login, or contact hOpOn to reset the account.',
     errorCreateProfile: 'Failed to create profile',
     errorVerifyFirst: 'Please verify your email before completing your merchant profile.',
+    errorLegalRequired: 'Please agree to the Terms of Use and acknowledge the Privacy Policy.',
   };
 
   const validateStep0 = (): boolean => {
@@ -113,6 +116,10 @@ export const MerchantSignup: React.FC = () => {
     }
     if (password !== confirmPassword) {
       setError(copy.errorPasswordMatch);
+      return false;
+    }
+    if (!acceptedLegal) {
+      setError(copy.errorLegalRequired);
       return false;
     }
     setError('');
@@ -148,7 +155,13 @@ export const MerchantSignup: React.FC = () => {
           password,
           options: {
             emailRedirectTo: redirectUrl,
-            data: { hopon_signup_role: 'restaurant', role: 'restaurant' },
+            data: {
+              hopon_signup_role: 'restaurant',
+              role: 'restaurant',
+              hopon_terms_version: LEGAL_VERSION,
+              hopon_privacy_version: LEGAL_VERSION,
+              hopon_legal_accepted_at: new Date().toISOString(),
+            },
           },
         });
         if (authError) throw authError;
@@ -290,6 +303,26 @@ export const MerchantSignup: React.FC = () => {
               />
               <p className="mt-2 text-xs leading-5 text-black/45">{passwordPolicyText()}</p>
             </div>
+            <label className="flex items-start gap-3 text-sm leading-6 text-black/60">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => setAcceptedLegal(event.target.checked)}
+                className="mt-1 h-4 w-4 accent-hopon-red"
+                required
+              />
+              <span>
+                I agree to the{' '}
+                <Link to="/terms" target="_blank" rel="noreferrer" className="font-semibold text-hopon-black underline underline-offset-4">
+                  Terms of Use
+                </Link>{' '}
+                and acknowledge the{' '}
+                <Link to="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-hopon-black underline underline-offset-4">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
             {error && <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</p>}
             <button
               type="submit"

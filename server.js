@@ -8,6 +8,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const distPath = path.join(__dirname, 'dist');
 
+app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
+
 // 1) /config.js 优先：运行时配置，不被静态或 SPA fallback 吃掉
 app.get('/config.js', (_req, res) => {
   const config = {
@@ -22,11 +32,10 @@ app.get('/config.js', (_req, res) => {
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
     VITE_MAPBOX_ACCESS_TOKEN: process.env.VITE_MAPBOX_ACCESS_TOKEN || process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
     EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   };
   const body = `window.__RUNTIME_CONFIG__ = ${JSON.stringify(config)};`;
   res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Cache-Control', 'public, max-age=60');
+  res.setHeader('Cache-Control', 'no-store');
   res.send(body);
 });
 

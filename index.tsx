@@ -5,6 +5,8 @@ import { MerchantLocaleProvider } from './context/MerchantLocaleContext';
 import App from './App';
 import { Verify } from './pages/Verify';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { Terms } from './pages/Terms';
+import { Contact } from './pages/Contact';
 import { AuthCallback } from './pages/AuthCallback';
 import { ResetPassword } from './pages/ResetPassword';
 import { Pending } from './pages/Pending';
@@ -53,6 +55,8 @@ root.render(
         <Route path="/verify" element={<Verify />} />
         <Route path="/r/:slug" element={<RedemptionShortLink />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/pending" element={<Pending />} />

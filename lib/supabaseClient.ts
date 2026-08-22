@@ -10,7 +10,6 @@ declare global {
       EXPO_PUBLIC_SUPABASE_ANON_KEY?: string;
       VITE_MAPBOX_ACCESS_TOKEN?: string;
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN?: string;
-      GEMINI_API_KEY?: string;
     };
   }
 }

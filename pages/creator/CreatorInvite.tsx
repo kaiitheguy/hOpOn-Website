@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Download, Instagram, Mail, ShieldCheck, Smartphone } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { passwordPolicyError, passwordPolicyText, validatePasswordStrength } from '../../lib/passwordPolicy';
+import { LEGAL_VERSION } from '../../lib/legal';
 
 type InvitePreview = {
   invite?: {
@@ -101,6 +102,7 @@ export const CreatorInvite: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [signupBusy, setSignupBusy] = useState(false);
   const [claimBusy, setClaimBusy] = useState(false);
   const [formMessage, setFormMessage] = useState<{ text: string; error?: boolean } | null>(null);
@@ -189,6 +191,10 @@ export const CreatorInvite: React.FC = () => {
       setFormMessage({ text: 'Passwords do not match.', error: true });
       return;
     }
+    if (!acceptedLegal) {
+      setFormMessage({ text: 'Agree to the Terms of Use and acknowledge the Privacy Policy to create an account.', error: true });
+      return;
+    }
 
     setSignupBusy(true);
     setFormMessage(null);
@@ -202,6 +208,9 @@ export const CreatorInvite: React.FC = () => {
           creator_invite_token: token,
           hopon_signup_role: 'creator',
           role: 'creator',
+          hopon_terms_version: LEGAL_VERSION,
+          hopon_privacy_version: LEGAL_VERSION,
+          hopon_legal_accepted_at: new Date().toISOString(),
         },
       },
     });
@@ -228,7 +237,7 @@ export const CreatorInvite: React.FC = () => {
   const fitReasons = creatorFacingFitReasons(preview);
   const invitedEmail = preview?.invite?.invitedEmail ?? '';
   const emailLocked = Boolean(invitedEmail);
-  const canSignup = Boolean(token && (invitedEmail || email.trim()) && password && confirmPassword && !signupBusy);
+  const canSignup = Boolean(token && (invitedEmail || email.trim()) && password && confirmPassword && acceptedLegal && !signupBusy);
   const appStoreButton = (
     <a
       href={APP_STORE_URL}
@@ -372,6 +381,25 @@ export const CreatorInvite: React.FC = () => {
                       </label>
                     </div>
                     <p className="text-xs leading-5 text-black/45">{passwordPolicyText()}</p>
+                    <label className="flex items-start gap-3 text-sm leading-6 text-black/60">
+                      <input
+                        type="checkbox"
+                        checked={acceptedLegal}
+                        onChange={(event) => setAcceptedLegal(event.target.checked)}
+                        className="mt-1 h-4 w-4 accent-hopon-red"
+                      />
+                      <span>
+                        I agree to the{' '}
+                        <Link to="/terms" target="_blank" rel="noreferrer" className="font-semibold text-hopon-black underline underline-offset-4">
+                          Terms of Use
+                        </Link>{' '}
+                        and acknowledge the{' '}
+                        <Link to="/privacy" target="_blank" rel="noreferrer" className="font-semibold text-hopon-black underline underline-offset-4">
+                          Privacy Policy
+                        </Link>
+                        .
+                      </span>
+                    </label>
                     {formMessage && (
                       <div className={`rounded-2xl border px-4 py-3 text-sm leading-6 ${formMessage.error ? 'border-red-200 bg-red-50 text-red-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
                         {formMessage.text}

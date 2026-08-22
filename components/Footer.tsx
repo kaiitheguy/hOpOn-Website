@@ -1,57 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { APP_STORE_URL } from './Hero';
-
-function ContactForm() {
-  const [business, setBusiness] = useState('');
-  const [contact, setContact] = useState('');
-  const [message, setMessage] = useState('');
-
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-    const subject = encodeURIComponent(`Hopon inquiry from ${business || 'local business'}`);
-    const body = encodeURIComponent(
-      [
-        `Business: ${business || '-'}`,
-        `Contact: ${contact || '-'}`,
-        '',
-        'Message:',
-        message || '-',
-      ].join('\n')
-    );
-    window.location.href = `mailto:contact@thehoponapp.com?subject=${subject}&body=${body}`;
-  };
-
-  return (
-    <form onSubmit={submit} className="space-y-3">
-      <input
-        value={business}
-        onChange={(event) => setBusiness(event.target.value)}
-        placeholder="Business name"
-        className="min-h-[44px] w-full rounded-lg border border-white/20 bg-white/10 px-3 font-mono text-xs uppercase text-white placeholder:text-white/35 outline-none focus:border-white"
-      />
-      <input
-        value={contact}
-        onChange={(event) => setContact(event.target.value)}
-        placeholder="Email or phone"
-        className="min-h-[44px] w-full rounded-lg border border-white/20 bg-white/10 px-3 font-mono text-xs uppercase text-white placeholder:text-white/35 outline-none focus:border-white"
-      />
-      <textarea
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        placeholder="What do you want Hopon to help with?"
-        rows={3}
-        className="w-full resize-none rounded-lg border border-white/20 bg-white/10 px-3 py-3 font-mono text-xs uppercase text-white placeholder:text-white/35 outline-none focus:border-white"
-      />
-      <button
-        type="submit"
-        className="min-h-[44px] w-full rounded-lg bg-white px-4 font-display text-sm font-bold uppercase text-hopon-black transition-colors hover:bg-hopon-red hover:text-white"
-      >
-        Submit
-      </button>
-    </form>
-  );
-}
 
 export const Footer: React.FC = () => {
   const scrollToTop = (event: React.MouseEvent) => {
@@ -81,8 +31,19 @@ export const Footer: React.FC = () => {
         </div>
 
         <div id="contact" className="scroll-mt-28 border-b border-white/20 p-8 md:border-b-0 md:border-r lg:border-r md:p-12">
-          <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Contact</h4>
-          <ContactForm />
+          <h4 className="font-mono text-xs uppercase text-white/50">Talk to us</h4>
+          <p className="mt-6 font-display text-2xl font-bold leading-tight">Merchant pilot, platform integration, or creator partnership?</p>
+          <p className="mt-4 text-sm leading-6 text-white/60">Choose the right request type and give our team the context needed to respond.</p>
+          <Link
+            to="/contact"
+            className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 font-display text-sm font-bold uppercase text-hopon-black transition-colors hover:bg-hopon-red hover:text-white"
+          >
+            Contact hOpOn
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <a href="mailto:contact@thehoponapp.com" className="mt-4 block break-all text-xs text-white/45 underline underline-offset-4 hover:text-white">
+            contact@thehoponapp.com
+          </a>
         </div>
 
         <div className="p-8 md:p-12">
@@ -100,8 +61,14 @@ export const Footer: React.FC = () => {
         <div className="font-mono text-[10px] uppercase text-white/40">
           © {new Date().getFullYear()} THE hOpOn APP
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <span className="font-mono text-[10px] uppercase text-white/40">New York</span>
+          <Link to="/privacy" className="font-mono text-[10px] uppercase text-white/40 transition-colors hover:text-white">
+            Privacy
+          </Link>
+          <Link to="/terms" className="font-mono text-[10px] uppercase text-white/40 transition-colors hover:text-white">
+            Terms
+          </Link>
           <a href="#" onClick={scrollToTop} className="font-mono text-[10px] uppercase text-white/40 transition-colors hover:text-white">
             Back to Top
           </a>

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const origin = 'https://www.thehoponapp.com';
-const expectedUrls = [`${origin}/`, `${origin}/privacy`, `${origin}/discover`];
+const expectedUrls = [`${origin}/`, `${origin}/privacy`, `${origin}/terms`, `${origin}/contact`, `${origin}/discover`];
 const failures = [];
 
 const assert = (condition, message) => {
@@ -100,6 +100,22 @@ assert(
   contentType('/sitemap.xml') === 'application/xml; charset=utf-8',
   'vercel.json must serve sitemap.xml as application/xml; charset=utf-8',
 );
+
+const headerValue = (source, name) =>
+  vercel.headers
+    ?.find((entry) => entry.source === source)
+    ?.headers?.find((header) => header.key.toLowerCase() === name.toLowerCase())?.value;
+assert(headerValue('/(.*)', 'X-Content-Type-Options') === 'nosniff', 'global headers must disable MIME sniffing');
+assert(headerValue('/(.*)', 'X-Frame-Options') === 'DENY', 'global headers must block framing');
+assert(
+  headerValue('/(.*)', 'Referrer-Policy') === 'strict-origin-when-cross-origin',
+  'global headers must limit referrer data',
+);
+assert(
+  headerValue('/(.*)', 'Permissions-Policy') === 'camera=(), microphone=(), geolocation=(self)',
+  'global headers must restrict browser permissions',
+);
+assert(headerValue('/config.js', 'Cache-Control') === 'no-store', 'runtime config must not be cached');
 
 if (fs.existsSync(path.join(root, 'dist'))) {
   assert(read('dist/robots.txt') === robots, 'dist/robots.txt must match public/robots.txt');

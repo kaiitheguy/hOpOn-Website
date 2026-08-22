@@ -34,7 +34,6 @@ export default defineConfig(({ mode }) => {
                   VITE_MAPBOX_ACCESS_TOKEN:
                     devEnv.VITE_MAPBOX_ACCESS_TOKEN || devEnv.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
                   EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: devEnv.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || '',
-                  GEMINI_API_KEY: devEnv.GEMINI_API_KEY || '',
                 };
                 res.setHeader('Content-Type', 'application/javascript');
                 res.end(`window.__RUNTIME_CONFIG__ = ${JSON.stringify(config)};`);
@@ -52,8 +51,6 @@ export default defineConfig(({ mode }) => {
         'import.meta.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''),
         'import.meta.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN || env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || ''),
         'import.meta.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || ''),
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
       },
       resolve: {
         alias: {
