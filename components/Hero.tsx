@@ -253,10 +253,10 @@ export const Hero: React.FC = () => {
           </div>
           <div className={`fade-up-enter stagger-3 ${revealState} mt-6 flex flex-col gap-3 sm:flex-row md:mt-9`}>
             <Link
-              to="/merchant/signup"
+              to="/pricing"
               className="inline-flex min-h-[54px] items-center justify-center gap-2 rounded-lg bg-hopon-black px-6 py-4 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red"
             >
-              Start Growing
+              Explore Plans
               <ArrowRight className="h-4 w-4" />
             </Link>
             <AppStoreBadge />

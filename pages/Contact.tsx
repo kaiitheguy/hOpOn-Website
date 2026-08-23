@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Building2, Network, UsersRound } from 'lucide-react';
-import { BrandHeader } from '../components/BrandHeader';
 import { ContactInquiryForm } from '../components/ContactInquiryForm';
+import { NavBar } from '../components/NavBar';
 
 const paths = [
   { icon: Building2, title: 'Merchant pilot', copy: 'Launch a measurable creator campaign for one location or a multi-location group.' },
@@ -17,7 +17,7 @@ export const Contact: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <BrandHeader />
+      <NavBar />
       <main className="px-5 pb-20 pt-28 md:px-8 md:pb-28 md:pt-32">
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">

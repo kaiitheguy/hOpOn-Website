@@ -24,7 +24,7 @@ export const Footer: React.FC = () => {
         <div className="border-b border-white/20 p-8 md:border-b-0 lg:border-r md:p-12">
           <h4 className="mb-8 font-mono text-xs uppercase text-white/50">Business</h4>
           <ul className="space-y-4 font-display text-lg font-bold uppercase">
-            <li><Link to="/merchant/signup" className="transition-colors hover:text-hopon-red">Start Growing</Link></li>
+            <li><Link to="/pricing" className="transition-colors hover:text-hopon-red">Pricing</Link></li>
             <li><a href={APP_STORE_URL} target="_blank" rel="noreferrer" className="transition-colors hover:text-hopon-red">Download App</a></li>
             <li><Link to="/merchant/login" className="transition-colors hover:text-hopon-red">Merchant Login</Link></li>
           </ul>
