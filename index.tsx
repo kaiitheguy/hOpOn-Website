@@ -40,6 +40,9 @@ import { RedemptionShortLink } from './pages/RedemptionShortLink';
 import { GeoMerchantPage } from './components/GeoMerchantPage';
 import { GeoDiscoveryPage } from './components/GeoDiscoveryPage';
 import { GeoDirectoryPage } from './components/GeoDirectoryPage';
+import { CheckoutSuccessRoute } from './pages/CheckoutSuccessRoute';
+import { CheckoutCanceledRoute } from './pages/CheckoutCanceledRoute';
+import { Pricing } from './pages/Pricing';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -52,11 +55,14 @@ root.render(
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
+        <Route path="/pricing" element={<Pricing />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/r/:slug" element={<RedemptionShortLink />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/checkout/success" element={<CheckoutSuccessRoute />} />
+        <Route path="/checkout/canceled" element={<CheckoutCanceledRoute />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/pending" element={<Pending />} />

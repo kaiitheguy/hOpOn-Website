@@ -8,7 +8,7 @@ export const NavBar: React.FC = () => {
     { href: '/#demo', label: 'Demo' },
     { href: '/#growth-proof', label: 'Results' },
     { href: '/#why', label: 'Why hOpOn' },
-    { href: '/#flexible-growth', label: 'Plans' },
+    { href: '/pricing', label: 'Plans' },
   ];
 
   useEffect(() => {

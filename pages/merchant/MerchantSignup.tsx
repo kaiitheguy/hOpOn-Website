@@ -21,6 +21,7 @@ import {
   type MerchantSignupProfile,
 } from '../../lib/merchant/signupProfile';
 import { LEGAL_VERSION } from '../../lib/legal';
+import { claimSubscriptionCheckout, normalizeCheckoutSessionId } from '../../lib/subscriptions';
 
 type Step = 0 | 1 | 2;
 
@@ -28,6 +29,9 @@ export const MerchantSignup: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isCompletingSignup = searchParams.get('complete') === '1';
+  const checkoutSessionParam = searchParams.get('checkout_session_id');
+  const checkoutSessionId = normalizeCheckoutSessionId(checkoutSessionParam);
+  const hasInvalidCheckoutSession = checkoutSessionParam !== null && !checkoutSessionId;
   const [step, setStep] = useState<Step>(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +47,7 @@ export const MerchantSignup: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [checkoutClaimed, setCheckoutClaimed] = useState(false);
 
   useEffect(() => {
     if (!isCompletingSignup) return;
@@ -102,9 +107,14 @@ export const MerchantSignup: React.FC = () => {
     errorCreateProfile: 'Failed to create profile',
     errorVerifyFirst: 'Please verify your email before completing your merchant profile.',
     errorLegalRequired: 'Please agree to the Terms of Use and acknowledge the Privacy Policy.',
+    errorCheckoutLinkInvalid: 'This checkout link is invalid. Return to pricing and start again.',
   };
 
   const validateStep0 = (): boolean => {
+    if (hasInvalidCheckoutSession) {
+      setError(copy.errorCheckoutLinkInvalid);
+      return false;
+    }
     if (!email.trim()) {
       setError(copy.errorFillAll);
       return false;
@@ -149,12 +159,13 @@ export const MerchantSignup: React.FC = () => {
       setLoading(true);
       setError('');
       try {
-        const redirectUrl = `${window.location.origin}/auth/callback`;
+        const redirectUrl = new URL('/auth/callback', window.location.origin);
+        if (checkoutSessionId) redirectUrl.searchParams.set('checkout_session_id', checkoutSessionId);
         const { data, error: authError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
-            emailRedirectTo: redirectUrl,
+            emailRedirectTo: redirectUrl.toString(),
             data: {
               hopon_signup_role: 'restaurant',
               role: 'restaurant',
@@ -173,6 +184,14 @@ export const MerchantSignup: React.FC = () => {
         if (!data.session) {
           navigate('/pending?verify=email', { replace: true });
           return;
+        }
+        if (checkoutSessionId) {
+          const claimResult = await claimSubscriptionCheckout(checkoutSessionId);
+          if ('claimed' in claimResult) {
+            setCheckoutClaimed(true);
+          } else {
+            setError(`${claimResult.error.message} We will retry when you finish your merchant profile.`);
+          }
         }
         setStep(1);
       } catch (err) {
@@ -217,6 +236,15 @@ export const MerchantSignup: React.FC = () => {
         email: user.email ?? email.trim(),
         profile: profileData,
       });
+
+      if (checkoutSessionId && !checkoutClaimed) {
+        const claimResult = await claimSubscriptionCheckout(checkoutSessionId);
+        if ('error' in claimResult) {
+          setError(`${claimResult.error.message} Please retry this step so we can link your subscription.`);
+          return;
+        }
+        setCheckoutClaimed(true);
+      }
 
       navigate('/pending', { replace: true });
     } catch (err) {

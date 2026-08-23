@@ -2,12 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar } from './components/NavBar';
 import { Hero } from './components/Hero';
-import {
-  FlexibleGrowthSection,
-  GrowthProofSection,
-  InteractiveProductDemo,
-  WhyHopon,
-} from './components/LandingPageSections';
+import { GrowthProofSection, InteractiveProductDemo, WhyHopon } from './components/LandingPageSections';
 import { Footer } from './components/Footer';
 
 const App: React.FC = () => {
@@ -35,7 +30,6 @@ const App: React.FC = () => {
         <InteractiveProductDemo />
         <GrowthProofSection />
         <WhyHopon />
-        <FlexibleGrowthSection />
       </main>
       <Footer />
     </div>

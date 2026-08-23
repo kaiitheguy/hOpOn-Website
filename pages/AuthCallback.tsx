@@ -8,6 +8,7 @@ import {
   readMerchantSignupProfile,
 } from '../lib/merchant/signupProfile';
 import { BrandBackground, BrandStatusCard, brandPrimaryButtonClass } from '../components/BrandChrome';
+import { claimSubscriptionCheckout, normalizeCheckoutSessionId } from '../lib/subscriptions';
 
 function parseHashParams(hash: string): Record<string, string> {
   const out: Record<string, string> = {};
@@ -39,8 +40,16 @@ export const AuthCallback: React.FC = () => {
       const typeFromSearch = getSearchParam('type');
       const type = typeFromHash || typeFromSearch || '';
       const code = getSearchParam('code');
+      const checkoutSessionParam = getSearchParam('checkout_session_id');
+      const checkoutSessionId = normalizeCheckoutSessionId(checkoutSessionParam);
 
       try {
+        if (checkoutSessionParam !== null && !checkoutSessionId) {
+          setStatus('error');
+          setErrorMessage('This checkout link is invalid. Please return to pricing and start again.');
+          return;
+        }
+
         let { data: { session } } = await supabase.auth.getSession();
 
         if (!session && code) {
@@ -53,6 +62,14 @@ export const AuthCallback: React.FC = () => {
         if (cancelled) return;
 
         if (session) {
+          if (checkoutSessionId) {
+            const claimResult = await claimSubscriptionCheckout(checkoutSessionId);
+            if ('error' in claimResult) {
+              setStatus('error');
+              setErrorMessage(`${claimResult.error.message} Please retry this sign-in link.`);
+              return;
+            }
+          }
           if (type === 'recovery') {
             navigate('/reset-password', { replace: true });
             return;
@@ -81,7 +98,10 @@ export const AuthCallback: React.FC = () => {
             return;
           }
           if (signupRole === 'restaurant' && !merchantSignupProfile && !existingAppUser) {
-            navigate('/merchant/signup?complete=1', { replace: true });
+            const nextPath = checkoutSessionId
+              ? `/merchant/signup?complete=1&checkout_session_id=${encodeURIComponent(checkoutSessionId)}`
+              : '/merchant/signup?complete=1';
+            navigate(nextPath, { replace: true });
             return;
           }
           if (user && merchantSignupProfile) {

@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  Building2,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -11,11 +10,8 @@ import {
   Gift,
   MousePointerClick,
   ReceiptText,
-  Rocket,
   Sparkles,
-  Sprout,
   UsersRound,
-  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
@@ -40,15 +36,6 @@ type GrowthCase = {
   status: string;
   kpis: { value: string; label: string }[];
   insight: string;
-};
-
-type SubscriptionTier = {
-  name: string;
-  icon: LucideIcon;
-  badge: string;
-  copy: string;
-  bullets: string[];
-  featured?: boolean;
 };
 
 function AnimatedValue({ value }: { value: string }) {
@@ -221,43 +208,6 @@ const growthCases: GrowthCase[] = [
       { value: '+41%', label: 'Event Revenue' },
     ],
     insight: 'One neighborhood nightlife creator accounted for 44% of tracked event redemptions.',
-  },
-];
-
-const subscriptionTiers: SubscriptionTier[] = [
-  {
-    name: 'Starter',
-    icon: Sprout,
-    badge: 'Start small',
-    copy: 'Perfect for businesses exploring creator marketing for the first time.',
-    bullets: [
-      'Launch your first campaigns',
-      'Discover local creators',
-      'Learn what drives customer interest',
-    ],
-  },
-  {
-    name: 'Growth',
-    icon: Rocket,
-    badge: 'Repeatable channel',
-    copy: 'For businesses ready to turn creator marketing into a repeatable growth channel.',
-    bullets: [
-      'AI-powered campaign management',
-      'Creator matching and content optimization',
-      'Performance tracking and campaign insights',
-    ],
-    featured: true,
-  },
-  {
-    name: 'Pro',
-    icon: Building2,
-    badge: 'Scale with clarity',
-    copy: 'Built for businesses focused on measurable growth and long-term scale.',
-    bullets: [
-      'Advanced attribution and ROI reporting',
-      'Multi-location campaign management',
-      'Dedicated growth insights and optimization',
-    ],
   },
 ];
 
@@ -956,98 +906,6 @@ export const WhyHopon: React.FC = () => {
             );
           })}
         </div>
-      </div>
-    </AnimatedSection>
-  );
-};
-
-export const FlexibleGrowthSection: React.FC = () => {
-  const [activeTierName, setActiveTierName] = useState<string | null>(null);
-
-  return (
-    <AnimatedSection id="flexible-growth" className="bg-white">
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="mb-3 font-mono text-xs uppercase text-hopon-red">Platform subscription</p>
-        <h2 className="font-display text-4xl font-bold leading-tight text-hopon-black md:text-6xl">
-          Flexible Growth, Your Way
-        </h2>
-        <p className="mt-5 text-base leading-7 text-black/70 md:text-lg">
-          Whether you're running your first creator campaign or scaling across multiple locations, hOpOn grows with your
-          business.
-        </p>
-      </div>
-
-      <div className="mt-12 grid gap-4 lg:grid-cols-3">
-        {subscriptionTiers.map((tier) => {
-          const Icon = tier.icon;
-          const isActive = activeTierName === tier.name;
-          return (
-            <article
-              key={tier.name}
-              onMouseEnter={() => setActiveTierName(tier.name)}
-              onMouseLeave={() => setActiveTierName(null)}
-              onFocus={() => setActiveTierName(tier.name)}
-              onBlur={() => setActiveTierName(null)}
-              className={`relative flex min-h-[390px] flex-col rounded-3xl border p-5 transition-all duration-300 md:p-6 ${
-                isActive
-                  ? 'border-hopon-red/30 bg-gradient-to-br from-white via-[#FFF5F5] to-[#F7F2E8] shadow-[0_24px_75px_rgba(255,42,42,0.13)] lg:-translate-y-2'
-                  : 'border-black/10 bg-white shadow-[0_16px_52px_rgba(0,0,0,0.07)]'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div
-                  className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
-                    isActive ? 'bg-hopon-red text-white' : 'bg-[#F7F2E8] text-hopon-black'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <span
-                  className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase ${
-                    isActive
-                      ? 'border-hopon-red/25 bg-white text-hopon-red'
-                      : 'border-black/10 bg-[#FAF7F1] text-black/50'
-                  }`}
-                >
-                  {tier.badge}
-                </span>
-              </div>
-
-              <h3 className="mt-8 font-display text-3xl font-bold leading-tight text-hopon-black">{tier.name}</h3>
-              <p className="mt-3 min-h-[72px] text-sm leading-6 text-black/64">{tier.copy}</p>
-
-              <div className="mt-6 space-y-3">
-                {tier.bullets.map((bullet) => (
-                  <div key={bullet} className="flex items-start gap-2.5 text-sm leading-5 text-black/72">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2F7D5B]" />
-                    <span>{bullet}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-auto pt-8">
-                <Link
-                  to="/merchant/signup"
-                  className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 font-display text-sm font-bold uppercase transition-colors ${
-                    isActive
-                      ? 'border-hopon-black bg-hopon-black text-white hover:bg-hopon-red'
-                      : 'border-black/15 bg-white text-hopon-black hover:border-hopon-black hover:bg-[#F7F2E8]'
-                  }`}
-                >
-                  Join the Waitlist
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      <div className="mx-auto mt-8 max-w-3xl rounded-3xl border border-black/10 bg-[#FAF7F1] p-5 text-center text-sm leading-6 text-black/64 shadow-[0_14px_45px_rgba(0,0,0,0.06)]">
-        <p>
-          Your subscription covers the hOpOn platform, AI agents, campaign tools, creator workflow, and attribution
-          dashboard.
-        </p>
       </div>
     </AnimatedSection>
   );
