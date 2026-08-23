@@ -9,7 +9,6 @@ export const NavBar: React.FC = () => {
     { href: '/#demo', label: 'Product' },
     { href: '/#growth-proof', label: 'Results' },
     { href: '/#why', label: 'Why hOpOn' },
-    { href: '/pricing', label: 'Pricing' },
     { href: '/contact', label: 'Contact' },
   ];
 
