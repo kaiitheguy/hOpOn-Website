@@ -9,7 +9,7 @@ export const NavBar: React.FC = () => {
     { href: '/#demo', label: 'Product' },
     { href: '/#growth-proof', label: 'Results' },
     { href: '/#why', label: 'Why hOpOn' },
-    { href: '/contact', label: 'Contact' },
+    { href: '/pricing', label: 'Pricing' },
   ];
 
   useEffect(() => {
@@ -74,13 +74,21 @@ export const NavBar: React.FC = () => {
               </a>
             ))}
           </div>
-          <Link
-            to="/pricing"
-            className="hidden min-h-[44px] items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-xs font-bold uppercase text-white transition-colors hover:bg-hopon-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2 xl:inline-flex xl:px-5"
-          >
-            View Pricing
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="hidden items-center gap-3 xl:flex">
+            <Link
+              to="/merchant/login"
+              className="inline-flex min-h-[44px] items-center px-2 font-display text-xs font-bold uppercase text-black/65 underline underline-offset-4 transition-colors hover:text-hopon-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2"
+            >
+              Log in
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-xs font-bold uppercase text-white transition-colors hover:bg-hopon-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2 xl:px-5"
+            >
+              Book a Demo
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
           <button
             type="button"
             className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-black bg-white px-3 py-2 font-display text-xs font-bold uppercase text-hopon-black transition-colors hover:bg-hopon-grey focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2 xl:hidden"
@@ -110,21 +118,21 @@ export const NavBar: React.FC = () => {
               {link.label}
             </a>
           ))}
-          <Link
-            to="/pricing"
-            onClick={closeMenu}
-            className="mt-4 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2"
-          >
-            View Pricing
-            <ArrowRight className="h-4 w-4" />
-          </Link>
           <div className="mt-4 border-t border-black/20 pt-4">
+            <Link
+              to="/contact"
+              onClick={closeMenu}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-lg border border-black bg-hopon-black px-4 py-3 font-display text-sm font-bold uppercase text-white transition-colors hover:bg-hopon-red focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2"
+            >
+              Book a Demo
+              <ArrowRight className="h-4 w-4" />
+            </Link>
             <Link
               to="/merchant/login"
               onClick={closeMenu}
-              className="font-mono text-xs font-bold uppercase text-black/60 underline underline-offset-4 hover:text-hopon-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2"
+              className="mt-3 inline-flex min-h-[44px] items-center px-1 font-mono text-xs font-bold uppercase text-black/60 underline underline-offset-4 hover:text-hopon-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hopon-red focus-visible:ring-offset-2"
             >
-              Merchant Login
+              Log in
             </Link>
           </div>
         </div>
