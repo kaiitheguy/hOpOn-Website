@@ -240,13 +240,13 @@ export const Hero: React.FC = () => {
         <div>
           <p className={`fade-up-enter ${revealState} mb-5 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-3 py-2 font-mono text-xs uppercase text-black/60`}>
             <TrendingUp className="h-4 w-4 text-hopon-red" />
-            Agentic Growth Platform for Local Businesses
+            Offline attribution for local creator marketing
           </p>
           <h1 className={`fade-up-enter stagger-1 ${revealState} font-display text-4xl font-bold leading-[0.98] text-hopon-black md:text-7xl lg:text-8xl`}>
             Stop Paying for Marketing You Can't Measure
           </h1>
           <p className={`fade-up-enter stagger-2 ${revealState} mt-5 max-w-xl text-base leading-7 text-black/70 md:text-xl md:leading-8`}>
-            Reach high-intent local customers through creators, unlock audiences other platforms miss, and measure every visit, conversion, and dollar of growth.
+            Reach high-intent local customers through creators, then connect each campaign to trackable offers, verified in-store visits, redemptions, and revenue signals.
           </p>
           <div className={`fade-up-enter stagger-3 ${revealState} mt-6 lg:hidden`}>
             <MobileHeroVisual />

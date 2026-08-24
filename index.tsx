@@ -43,6 +43,9 @@ import { GeoDirectoryPage } from './components/GeoDirectoryPage';
 import { CheckoutSuccessRoute } from './pages/CheckoutSuccessRoute';
 import { CheckoutCanceledRoute } from './pages/CheckoutCanceledRoute';
 import { Pricing } from './pages/Pricing';
+import { Merchants } from './pages/Merchants';
+import { Creators } from './pages/Creators';
+import { Partners } from './pages/Partners';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -56,6 +59,9 @@ root.render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/merchants" element={<Merchants />} />
+        <Route path="/creators" element={<Creators />} />
+        <Route path="/partners" element={<Partners />} />
         <Route path="/verify" element={<Verify />} />
         <Route path="/r/:slug" element={<RedemptionShortLink />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const origin = 'https://www.thehoponapp.com';
-const expectedUrls = [`${origin}/`, `${origin}/pricing`, `${origin}/privacy`, `${origin}/terms`, `${origin}/contact`, `${origin}/discover`];
+const expectedUrls = [`${origin}/`, `${origin}/pricing`, `${origin}/merchants`, `${origin}/creators`, `${origin}/partners`, `${origin}/privacy`, `${origin}/terms`, `${origin}/contact`, `${origin}/discover`];
 const failures = [];
 
 const assert = (condition, message) => {

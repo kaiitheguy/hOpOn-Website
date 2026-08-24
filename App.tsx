@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { NavBar } from './components/NavBar';
 import { Hero } from './components/Hero';
 import { GrowthProofSection, InteractiveProductDemo, WhyHopon } from './components/LandingPageSections';
+import { AudienceSection } from './components/AudienceSection';
 import { Footer } from './components/Footer';
 
 const App: React.FC = () => {
@@ -22,6 +23,39 @@ const App: React.FC = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    let animationFrame: number | null = null;
+
+    const scrollToHash = () => {
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+
+      const hash = window.location.hash;
+      if (!hash || hash.includes('=')) return;
+
+      let decodedId = '';
+      try {
+        decodedId = decodeURIComponent(hash.slice(1));
+      } catch {
+        return;
+      }
+
+      if (!/^[A-Za-z][A-Za-z0-9:_-]*$/.test(decodedId)) return;
+
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = null;
+        document.getElementById(decodedId)?.scrollIntoView();
+      });
+    };
+
+    scrollToHash();
+    window.addEventListener('hashchange', scrollToHash);
+
+    return () => {
+      window.removeEventListener('hashchange', scrollToHash);
+      if (animationFrame !== null) window.cancelAnimationFrame(animationFrame);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <NavBar />
@@ -30,6 +64,7 @@ const App: React.FC = () => {
         <InteractiveProductDemo />
         <GrowthProofSection />
         <WhyHopon />
+        <AudienceSection />
       </main>
       <Footer />
     </div>
