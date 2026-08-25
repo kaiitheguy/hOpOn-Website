@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   BarChart3,
+  Check,
+  Minus,
   MousePointerClick,
   Sparkles,
+  Star,
+  X,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
@@ -150,14 +154,16 @@ function AnimatedSection({
   id,
   children,
   className = '',
+  style,
 }: {
   id?: string;
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const [ref, isVisible] = useIntersectionObserver({ threshold: 0.12, rootMargin: '0px 0px -70px 0px' });
   return (
-    <section id={id} className={`relative overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
+    <section id={id} style={style} className={`relative overflow-hidden px-6 py-20 md:px-12 md:py-28 lg:px-16 ${className}`}>
       <div
         ref={ref}
         className={`mx-auto max-w-7xl transition-all duration-700 ease-out ${
@@ -248,14 +254,44 @@ function DashboardChip({ children, accent = false }: { children: React.ReactNode
   return <span className={'rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide ' + (accent ? 'bg-[#FFF0F0] text-hopon-red' : 'bg-[#F7F2E8] text-black/55')}>{children}</span>;
 }
 
-function DemandBars() {
+const intelligenceObserverOptions = { threshold: 0.2, rootMargin: '0px 0px -56px 0px' };
+
+function useReducedMotionPreference() {
+  const [reducedMotion, setReducedMotion] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handleChange = () => setReducedMotion(mediaQuery.matches);
+    handleChange();
+    mediaQuery.addEventListener?.('change', handleChange);
+    return () => mediaQuery.removeEventListener?.('change', handleChange);
+  }, []);
+
+  return reducedMotion;
+}
+
+function DemandBars({ active }: { active: boolean }) {
   const bars = [36, 47, 43, 59, 68, 78, 92];
+  const reducedMotion = useReducedMotionPreference();
+  const settled = active || reducedMotion;
   return (
     <div className="mt-5">
       <div className="flex h-44 items-end gap-2 border-b border-black/10 px-1 md:h-52">
         {bars.map((height, index) => (
           <div key={index} className="flex flex-1 flex-col items-center justify-end gap-2">
-            <span className="w-full rounded-t-lg bg-hopon-red/75" style={{ height: height + 'px' }} />
+            <span
+              className="w-full origin-bottom rounded-t-lg bg-hopon-red/75 transition-[transform,opacity] ease-out"
+              style={{
+                height: height + 'px',
+                opacity: settled ? 1 : 0.25,
+                transform: settled ? 'scaleY(1)' : 'scaleY(0.04)',
+                transitionDuration: reducedMotion ? '0ms' : '760ms',
+                transitionDelay: reducedMotion ? '0ms' : `${index * 70}ms`,
+              }}
+            />
             <span className="font-mono text-[8px] uppercase text-black/35">{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</span>
           </div>
         ))}
@@ -269,44 +305,48 @@ function DemandBars() {
 }
 
 function CampaignDashboard() {
+  const [sectionRef, isVisible] = useIntersectionObserver(intelligenceObserverOptions);
+
   return (
-    <DashboardShell module="Demand view" title="Campaign Intelligence">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <DashboardLabel>Atelier Matcha · East Village</DashboardLabel>
-          <p className="mt-1 font-display text-lg font-bold text-hopon-black md:text-xl">What should we launch next?</p>
-        </div>
-        <span className="rounded-full bg-[#EAF4EF] px-2.5 py-1 font-mono text-[8px] uppercase text-[#2F7D5B]">Signal rising</span>
-      </div>
-      <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
-        <DashboardPanel>
-          <div className="flex items-start justify-between gap-3">
-            <div><DashboardLabel>Local trend</DashboardLabel><p className="mt-1 font-display text-2xl font-bold text-hopon-black">Matcha desserts</p></div>
-            <span className="rounded-full bg-[#EAF4EF] px-2.5 py-1 font-mono text-[8px] uppercase text-[#2F7D5B]">+32%</span>
+    <div ref={sectionRef}>
+      <DashboardShell module="Demand view" title="Campaign Intelligence">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <DashboardLabel>Atelier Matcha · East Village</DashboardLabel>
+            <p className="mt-1 font-display text-lg font-bold text-hopon-black md:text-xl">What should we launch next?</p>
           </div>
-          <DemandBars />
+          <span className="rounded-full bg-[#EAF4EF] px-2.5 py-1 font-mono text-[8px] uppercase text-[#2F7D5B]">Signal rising</span>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
+          <DashboardPanel>
+            <div className="flex items-start justify-between gap-3">
+              <div><DashboardLabel>Local trend</DashboardLabel><p className="mt-1 font-display text-2xl font-bold text-hopon-black">Matcha desserts</p></div>
+              <span className="rounded-full bg-[#EAF4EF] px-2.5 py-1 font-mono text-[8px] uppercase text-[#2F7D5B]"><AnimatedValue value="+32%" /></span>
+            </div>
+            <DemandBars active={isVisible} />
+          </DashboardPanel>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <DashboardPanel>
+              <DashboardLabel>Merchant context</DashboardLabel>
+              <p className="mt-2 font-display text-xl font-bold text-hopon-black">Lunch gap</p>
+              <div className="mt-3 flex flex-wrap gap-2"><DashboardChip accent>Tue–Thu</DashboardChip><DashboardChip>11a–2p</DashboardChip></div>
+              <p className="mt-3 text-xs leading-5 text-black/55">A quiet service window worth testing.</p>
+            </DashboardPanel>
+            <DashboardPanel>
+              <DashboardLabel>Campaign memory</DashboardLabel>
+              <p className="mt-2 font-display text-xl font-bold text-hopon-black">Past lunch tests</p>
+              <p className="mt-3 text-xs leading-5 text-black/55">Merchant context stays with the next decision.</p>
+            </DashboardPanel>
+          </div>
+        </div>
+        <DashboardPanel className="mt-3" accent>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-2.5"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-hopon-red" aria-hidden="true" /><div><DashboardLabel>AI recommendation</DashboardLabel><p className="mt-1 font-display text-xl font-bold text-hopon-black md:text-2xl">Weekday lunch set</p></div></div>
+            <div className="flex flex-wrap gap-2"><DashboardChip accent>Momentum</DashboardChip><DashboardChip>Menu fit</DashboardChip><DashboardChip>Past outcomes</DashboardChip></div>
+          </div>
         </DashboardPanel>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <DashboardPanel>
-            <DashboardLabel>Merchant context</DashboardLabel>
-            <p className="mt-2 font-display text-xl font-bold text-hopon-black">Lunch gap</p>
-            <div className="mt-3 flex flex-wrap gap-2"><DashboardChip accent>Tue–Thu</DashboardChip><DashboardChip>11a–2p</DashboardChip></div>
-            <p className="mt-3 text-xs leading-5 text-black/55">A quiet service window worth testing.</p>
-          </DashboardPanel>
-          <DashboardPanel>
-            <DashboardLabel>Campaign memory</DashboardLabel>
-            <p className="mt-2 font-display text-xl font-bold text-hopon-black">Past lunch tests</p>
-            <p className="mt-3 text-xs leading-5 text-black/55">Merchant context stays with the next decision.</p>
-          </DashboardPanel>
-        </div>
-      </div>
-      <DashboardPanel className="mt-3" accent>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-2.5"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-hopon-red" aria-hidden="true" /><div><DashboardLabel>AI recommendation</DashboardLabel><p className="mt-1 font-display text-xl font-bold text-hopon-black md:text-2xl">Weekday lunch set</p></div></div>
-          <div className="flex flex-wrap gap-2"><DashboardChip accent>Momentum</DashboardChip><DashboardChip>Menu fit</DashboardChip><DashboardChip>Past outcomes</DashboardChip></div>
-        </div>
-      </DashboardPanel>
-    </DashboardShell>
+      </DashboardShell>
+    </div>
   );
 }
 
@@ -319,9 +359,13 @@ type CreatorRowProps = {
   avatar: string;
   bars: number[];
   status: string;
+  active: boolean;
+  reducedMotion: boolean;
 };
 
-function CreatorRow({ name, handle, audience, score, history, avatar, bars, status }: CreatorRowProps) {
+function CreatorRow({ name, handle, audience, score, history, avatar, bars, status, active, reducedMotion }: CreatorRowProps) {
+  const settled = active || reducedMotion;
+
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-3 md:p-4">
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5">
@@ -331,13 +375,24 @@ function CreatorRow({ name, handle, audience, score, history, avatar, bars, stat
           <p className="mt-1 truncate font-mono text-[8px] uppercase text-black/40">@{handle} · {audience}</p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-display text-xl font-bold leading-none text-hopon-black md:text-2xl">{score}</p>
+          <p className="font-display text-xl font-bold leading-none text-hopon-black md:text-2xl"><AnimatedValue value={score} /></p>
           <p className="mt-1 font-mono text-[8px] uppercase text-hopon-red">fit</p>
         </div>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-black/10 pt-3">
         <div className="grid min-w-0 flex-1 grid-cols-4 gap-1.5">
-          {bars.map((opacity, index) => <span key={index} className="h-2 min-w-0 rounded-full bg-hopon-red" style={{ opacity }} />)}
+          {bars.map((opacity, index) => (
+            <span
+              key={index}
+              className="h-2 min-w-0 origin-left rounded-full bg-hopon-red transition-[transform,opacity] ease-out"
+              style={{
+                opacity: settled ? opacity : 0.18,
+                transform: settled ? 'scaleX(1)' : 'scaleX(0)',
+                transitionDuration: reducedMotion ? '0ms' : '720ms',
+                transitionDelay: reducedMotion ? '0ms' : `${index * 80}ms`,
+              }}
+            />
+          ))}
         </div>
         <span className="hidden shrink-0 rounded-full bg-[#F7F2E8] px-2 py-1 font-mono text-[8px] uppercase text-black/50 sm:inline-flex">{status}</span>
       </div>
@@ -347,8 +402,12 @@ function CreatorRow({ name, handle, audience, score, history, avatar, bars, stat
 }
 
 function CreatorDashboard() {
+  const [sectionRef, isVisible] = useIntersectionObserver(intelligenceObserverOptions);
+  const reducedMotion = useReducedMotionPreference();
+
   return (
-    <DashboardShell module="Match view" title="Creator Intelligence">
+    <div ref={sectionRef}>
+      <DashboardShell module="Match view" title="Creator Intelligence">
       <DashboardPanel className="mb-3" accent>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><DashboardLabel>Campaign decision retained</DashboardLabel><p className="mt-1 font-display text-lg font-bold text-hopon-black">Weekday lunch set</p></div>
@@ -359,17 +418,17 @@ function CreatorDashboard() {
         <DashboardPanel>
           <div className="flex items-center justify-between gap-3"><div><DashboardLabel>Ranked creator set</DashboardLabel><p className="mt-1 font-display text-xl font-bold text-hopon-black">Fit by campaign evidence</p></div><span className="hidden font-mono text-[8px] uppercase text-black/40 sm:inline">Followers not primary</span></div>
           <div className="mt-4 space-y-2.5">
-            <CreatorRow name="Maya Chen" handle="mayabites" audience="East Village dessert" score="94" history="8 prior outcomes" avatar="/assets/creator-maya.png" bars={[0.92, 0.88, 0.9, 0.82]} status="Top fit" />
-            <CreatorRow name="Iris Lin" handle="irisnotes" audience="NYC student dining" score="91" history="Outcome history" avatar="/assets/creator-iris.png" bars={[0.86, 0.9, 0.84, 0.7]} status="Shortlist" />
-            <CreatorRow name="Noah Park" handle="noahvisits" audience="East Village food" score="87" history="New outcome signal" avatar="/assets/creator-noah.png" bars={[0.82, 0.8, 0.78, 0.38]} status="Consider" />
+            <CreatorRow name="Maya Chen" handle="mayabites" audience="East Village dessert" score="94" history="8 prior outcomes" avatar="/assets/creator-maya.png" bars={[0.92, 0.88, 0.9, 0.82]} status="Top fit" active={isVisible} reducedMotion={reducedMotion} />
+            <CreatorRow name="Iris Lin" handle="irisnotes" audience="NYC student dining" score="91" history="Outcome history" avatar="/assets/creator-iris.png" bars={[0.86, 0.9, 0.84, 0.7]} status="Shortlist" active={isVisible} reducedMotion={reducedMotion} />
+            <CreatorRow name="Noah Park" handle="noahvisits" audience="East Village food" score="87" history="New outcome signal" avatar="/assets/creator-noah.png" bars={[0.82, 0.8, 0.78, 0.38]} status="Consider" active={isVisible} reducedMotion={reducedMotion} />
           </div>
         </DashboardPanel>
         <DashboardPanel>
           <DashboardLabel>Selection logic</DashboardLabel>
           <p className="mt-2 font-display text-xl font-bold leading-tight text-hopon-black">Why Maya + Iris</p>
           <div className="mt-4 space-y-3">
-            {['Content fit', 'Local relevance', 'Campaign intent', 'Prior outcomes'].map((item) => (
-              <div key={item} className="flex items-center justify-between gap-3"><span className="text-xs text-black/60">{item}</span><span className="h-1.5 w-20 rounded-full bg-hopon-red/70" /></div>
+            {['Content fit', 'Local relevance', 'Campaign intent', 'Prior outcomes'].map((item, index) => (
+              <div key={item} className="flex items-center justify-between gap-3"><span className="text-xs text-black/60">{item}</span><span className="h-1.5 w-20 origin-left rounded-full bg-hopon-red/70 transition-transform ease-out" style={{ transform: isVisible || reducedMotion ? 'scaleX(1)' : 'scaleX(0)', transitionDuration: reducedMotion ? '0ms' : '760ms', transitionDelay: reducedMotion ? '0ms' : `${120 + index * 70}ms` }} /></div>
             ))}
           </div>
           <p className="mt-5 border-t border-black/10 pt-4 text-xs leading-5 text-black/55">Fit signals work together; follower count alone does not decide the rank.</p>
@@ -379,18 +438,65 @@ function CreatorDashboard() {
         <div><DashboardLabel>MATCH OUTPUT</DashboardLabel><p className="mt-1 font-display text-lg font-bold">Maya + Iris shortlisted</p></div>
         <span className="rounded-full bg-white/10 px-3 py-1.5 font-mono text-[9px] uppercase text-white/70">Creator fit retained</span>
       </div>
-    </DashboardShell>
+      </DashboardShell>
+    </div>
   );
 }
 
-function RedemptionBars() {
-  const bars = [22, 28, 25, 38, 34, 48, 58];
+const redemptionSeries = [1, 3, 5, 8, 11, 14, 18];
+
+function RedemptionTrend({ active }: { active: boolean }) {
+  const reducedMotion = useReducedMotionPreference();
+  const settled = active || reducedMotion;
+  const width = 320;
+  const baseY = 136;
+  const points = redemptionSeries.map((value, index) => ({
+    x: 18 + index * 47.3,
+    y: baseY - (value / 18) * 100,
+  }));
+  const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${baseY} L ${points[0].x} ${baseY} Z`;
+
   return (
     <div className="mt-5">
-      <div className="flex h-40 items-end gap-2 border-b border-black/10 px-1 md:h-44">
-        {bars.map((height, index) => (
-          <div key={index} className="flex flex-1 flex-col items-center justify-end gap-2"><span className="w-full rounded-t-lg bg-hopon-red/75" style={{ height: height + 'px' }} /><span className="font-mono text-[8px] uppercase text-black/35">{['M', 'T', 'W', 'T', 'F', 'S', 'S'][index]}</span></div>
+      <svg viewBox={`0 0 ${width} 170`} className="h-40 w-full overflow-visible md:h-44" role="img" aria-label="Seven-day cumulative redemption trend ending at 18">
+        <defs>
+          <linearGradient id="redemption-area-gradient" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#FF2A2A" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#FF2A2A" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <line x1="18" x2="302" y1={baseY} y2={baseY} stroke="rgba(0,0,0,0.12)" strokeWidth="1" />
+        <path d={areaPath} fill="url(#redemption-area-gradient)" style={{ opacity: settled ? 1 : 0, transition: reducedMotion ? 'none' : 'opacity 700ms ease-out' }} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#FF2A2A"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="3"
+          pathLength={1}
+          style={{
+            strokeDasharray: '1',
+            strokeDashoffset: settled ? 0 : 1,
+            transition: reducedMotion ? 'none' : 'stroke-dashoffset 900ms cubic-bezier(0.16,1,0.3,1)',
+          }}
+        />
+        {points.map((point, index) => (
+          <circle
+            key={index}
+            cx={point.x}
+            cy={point.y}
+            r="3.5"
+            fill="#FFFFFF"
+            stroke="#FF2A2A"
+            strokeWidth="2"
+            style={{ opacity: settled ? 1 : 0, transition: reducedMotion ? 'none' : `opacity 260ms ease-out ${450 + index * 70}ms` }}
+          />
         ))}
+      </svg>
+      <div className="mt-1 flex justify-between px-1 font-mono text-[8px] uppercase text-black/35">
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, index) => <span key={index}>{label}</span>)}
       </div>
       <div className="mt-3 flex items-center justify-between"><p className="font-mono text-[9px] uppercase text-black/40">7-day redemption trend</p><p className="font-mono text-[9px] uppercase text-black/40">Deduped</p></div>
     </div>
@@ -398,8 +504,12 @@ function RedemptionBars() {
 }
 
 function AttributionDashboard() {
+  const [sectionRef, isVisible] = useIntersectionObserver(intelligenceObserverOptions);
+  const reducedMotion = useReducedMotionPreference();
+
   return (
-    <DashboardShell module="Attribution view" title="Offline Intelligence">
+    <div ref={sectionRef}>
+      <DashboardShell module="Attribution view" title="Offline Intelligence">
       <DashboardPanel className="mb-3" accent>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><DashboardLabel>Campaign + creators retained</DashboardLabel><p className="mt-1 font-display text-lg font-bold text-hopon-black">Weekday lunch set · Maya + Iris</p></div>
@@ -407,19 +517,19 @@ function AttributionDashboard() {
         </div>
       </DashboardPanel>
       <div className="mb-3 grid gap-3 sm:grid-cols-2">
-        <DashboardPanel><DashboardLabel>Deduped redemptions</DashboardLabel><p className="mt-2 font-display text-4xl font-bold text-hopon-black">18</p><p className="mt-1 text-xs text-black/50">Creator-linked results</p></DashboardPanel>
-        <DashboardPanel><DashboardLabel>Estimated GMV</DashboardLabel><p className="mt-2 font-display text-4xl font-bold text-hopon-black">$540</p><p className="mt-1 text-xs text-black/50">Attributed outcome estimate</p></DashboardPanel>
+        <DashboardPanel><DashboardLabel>Deduped redemptions</DashboardLabel><p className="mt-2 font-display text-4xl font-bold text-hopon-black"><AnimatedValue value="18" /></p><p className="mt-1 text-xs text-black/50">Creator-linked results</p></DashboardPanel>
+        <DashboardPanel><DashboardLabel>Estimated GMV</DashboardLabel><p className="mt-2 font-display text-4xl font-bold text-hopon-black"><AnimatedValue value="$540" /></p><p className="mt-1 text-xs text-black/50">Attributed outcome estimate</p></DashboardPanel>
       </div>
       <div className="grid gap-3 lg:grid-cols-[1.35fr_0.65fr]">
         <DashboardPanel>
           <div className="flex items-center justify-between gap-3"><div><DashboardLabel>Redemption signal</DashboardLabel><p className="mt-1 font-display text-xl font-bold text-hopon-black">Activity by day</p></div><BarChart3 className="h-4 w-4 text-hopon-red" aria-hidden="true" /></div>
-          <RedemptionBars />
+          <RedemptionTrend active={isVisible} />
         </DashboardPanel>
         <DashboardPanel>
           <DashboardLabel>By creator</DashboardLabel>
           <div className="mt-4 space-y-3">
-            {[['Maya Chen', '9', 'w-full'], ['Iris Lin', '6', 'w-8/12'], ['Other', '3', 'w-4/12']].map(([name, value, width]) => (
-              <div key={name}><div className="flex items-center justify-between gap-2"><span className="font-mono text-[9px] uppercase text-black/55">{name}</span><span className="font-display text-sm font-bold text-hopon-black">{value}</span></div><div className="mt-1 h-2 rounded-full bg-black/10"><div className={'h-full rounded-full bg-hopon-red ' + width} /></div></div>
+            {[['Maya Chen', '9', 100], ['Iris Lin', '6', 67], ['Other', '3', 33]].map(([name, value, width], index) => (
+              <div key={name}><div className="flex items-center justify-between gap-2"><span className="font-mono text-[9px] uppercase text-black/55">{name}</span><span className="font-display text-sm font-bold text-hopon-black"><AnimatedValue value={String(value)} /></span></div><div className="mt-1 h-2 overflow-hidden rounded-full bg-black/10"><div className="h-full rounded-full bg-hopon-red transition-[width] ease-out" style={{ width: isVisible || reducedMotion ? `${width}%` : '0%', transitionDuration: reducedMotion ? '0ms' : '760ms', transitionDelay: reducedMotion ? '0ms' : `${180 + index * 80}ms` }} /></div></div>
             ))}
           </div>
           <p className="mt-5 border-t border-black/10 pt-4 font-mono text-[8px] uppercase text-black/40">Deduped redemptions</p>
@@ -436,7 +546,8 @@ function AttributionDashboard() {
       <DashboardPanel className="mt-3" accent>
         <div className="flex items-start gap-2.5"><Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-hopon-red" aria-hidden="true" /><div><DashboardLabel>AI next action</DashboardLabel><p className="mt-1 font-display text-lg font-bold text-hopon-black">Keep Maya + Iris in the next lunch test.</p></div></div>
       </DashboardPanel>
-    </DashboardShell>
+      </DashboardShell>
+    </div>
   );
 }
 
@@ -599,45 +710,45 @@ type CapabilityRow = {
 const capabilityRows: CapabilityRow[] = [
   {
     label: 'Demand intelligence',
-    agency: { keyword: 'Project-based', descriptor: 'Research is rebuilt around each brief.', tone: 'medium' },
-    marketplace: { keyword: 'Activity-based', descriptor: 'Data reflects creator profiles and campaign activity.', tone: 'medium' },
-    hopon: { keyword: 'Context-aware', descriptor: 'Local momentum, merchant timing, and outcome history connect.', tone: 'strong' },
+    agency: { keyword: 'Project-based', descriptor: 'Rebuilt per brief.', tone: 'medium' },
+    marketplace: { keyword: 'Activity-based', descriptor: 'Based on profiles and activity.', tone: 'medium' },
+    hopon: { keyword: 'Context-aware', descriptor: 'Connects demand, timing, and outcomes.', tone: 'strong' },
   },
   {
     label: 'Campaign planning',
-    agency: { keyword: 'Strategist-led', descriptor: 'Quality depends on team expertise and time.', tone: 'medium' },
-    marketplace: { keyword: 'Merchant-led', descriptor: 'The merchant arrives with the brief and offer.', tone: 'weak' },
-    hopon: { keyword: 'Evidence-led', descriptor: 'Signals and merchant context shape what to test.', tone: 'strong' },
+    agency: { keyword: 'Strategist-led', descriptor: 'Driven by strategist expertise.', tone: 'medium' },
+    marketplace: { keyword: 'Merchant-led', descriptor: 'Merchant supplies the brief.', tone: 'weak' },
+    hopon: { keyword: 'Evidence-led', descriptor: 'Evidence shapes the test.', tone: 'strong' },
   },
   {
     label: 'Creator discovery',
-    agency: { keyword: 'Relationship-limited', descriptor: 'Options depend on existing agency relationships.', tone: 'weak' },
-    marketplace: { keyword: 'Broad directory', descriptor: 'Large supply, but fit still needs interpretation.', tone: 'medium' },
-    hopon: { keyword: 'Fit-ranked network', descriptor: 'Creators surface against the campaign’s actual needs.', tone: 'strong' },
+    agency: { keyword: 'Relationship-limited', descriptor: 'Limited to known relationships.', tone: 'weak' },
+    marketplace: { keyword: 'Broad directory', descriptor: 'Broad supply to search.', tone: 'medium' },
+    hopon: { keyword: 'Fit-ranked network', descriptor: 'Ranks fit to the campaign.', tone: 'strong' },
   },
   {
     label: 'Creator matching',
-    agency: { keyword: 'Relationship-based', descriptor: 'Familiarity can outweigh campaign-specific fit.', tone: 'weak' },
-    marketplace: { keyword: 'Profile-filtered', descriptor: 'Filters organize options but do not prove fit.', tone: 'medium' },
-    hopon: { keyword: 'Matching intelligence', descriptor: 'Content, local relevance, intent, and outcomes work together.', tone: 'strong' },
+    agency: { keyword: 'Relationship-based', descriptor: 'Familiar creators first.', tone: 'weak' },
+    marketplace: { keyword: 'Profile-filtered', descriptor: 'Filters profiles.', tone: 'medium' },
+    hopon: { keyword: 'Matching intelligence', descriptor: 'Uses content, location, intent, and outcomes.', tone: 'strong' },
   },
   {
     label: 'Offline attribution',
-    agency: { keyword: 'Campaign-by-campaign', descriptor: 'Custom tracking must be assembled each time.', tone: 'weak' },
-    marketplace: { keyword: 'Content-level', descriptor: 'Reporting centers on delivery and social metrics.', tone: 'weak' },
-    hopon: { keyword: 'Creator-linked', descriptor: 'Source stays attached through redemption and revenue signals.', tone: 'strong' },
+    agency: { keyword: 'Campaign-by-campaign', descriptor: 'Custom setup each campaign.', tone: 'weak' },
+    marketplace: { keyword: 'Content-level', descriptor: 'Tracks content metrics.', tone: 'weak' },
+    hopon: { keyword: 'Creator-linked', descriptor: 'Links creators to redemptions.', tone: 'strong' },
   },
   {
     label: 'Merchant learning',
-    agency: { keyword: 'Report-held', descriptor: 'Learnings remain in reports and team knowledge.', tone: 'medium' },
-    marketplace: { keyword: 'Campaign-isolated', descriptor: 'Results remain attached to individual campaigns.', tone: 'weak' },
-    hopon: { keyword: 'Merchant-specific', descriptor: 'Store outcomes accumulate across campaigns.', tone: 'strong' },
+    agency: { keyword: 'Report-held', descriptor: 'Lives in reports.', tone: 'medium' },
+    marketplace: { keyword: 'Campaign-isolated', descriptor: 'Stays within each campaign.', tone: 'weak' },
+    hopon: { keyword: 'Merchant-specific', descriptor: 'Builds merchant outcome memory.', tone: 'strong' },
   },
   {
     label: 'Next-campaign optimization',
-    agency: { keyword: 'Consultant-interpreted', descriptor: 'A team translates past reports into next steps.', tone: 'medium' },
-    marketplace: { keyword: 'Retrospective', descriptor: 'Results arrive after the campaign is complete.', tone: 'weak' },
-    hopon: { keyword: 'Closed-loop', descriptor: 'Outcomes inform the next campaign and creator choice.', tone: 'strong' },
+    agency: { keyword: 'Consultant-interpreted', descriptor: 'Interpreted by a team.', tone: 'medium' },
+    marketplace: { keyword: 'Retrospective', descriptor: 'Reviews after completion.', tone: 'weak' },
+    hopon: { keyword: 'Closed-loop', descriptor: 'Outcomes shape the next choice.', tone: 'strong' },
   },
 ];
 
@@ -647,58 +758,104 @@ const comparisonModels: Array<{ id: ComparisonModelId; name: string; description
   { id: 'hopon', name: 'hOpOn', description: 'Plan, match, measure' },
 ];
 
-const modelSurface = (model: ComparisonModelId) => {
-  if (model === 'hopon') return 'border-hopon-red/25 bg-[#FFF0F0]';
-  if (model === 'marketplace') return 'bg-white/80';
-  return 'bg-white';
+const modelSurface = (model: ComparisonModelId, cell = false) => {
+  if (model === 'hopon') {
+    if (!cell) return 'border-black/20 bg-white shadow-[0_10px_24px_rgba(0,0,0,0.10)]';
+    return 'border-black/20 bg-white shadow-[0_8px_20px_rgba(0,0,0,0.08)]';
+  }
+  return 'border-black/10 bg-white/75 text-hopon-black/80';
 };
 
 const capabilityTone = (tone: CapabilityTone) => {
-  if (tone === 'strong') return 'border-[#2F7D5B]/20 bg-[#EAF4EF] text-[#2F7D5B]';
-  if (tone === 'medium') return 'border-[#E7C77E]/60 bg-[#FFF7E6] text-[#8A5A00]';
-  return 'border-[#E7A1A1]/50 bg-[#FDECEC] text-[#A33A3A]';
+  if (tone === 'strong') return { Icon: Check, label: 'Strong', className: 'text-[#2F7D5B]' };
+  if (tone === 'medium') return { Icon: Minus, label: 'Partial', className: 'text-[#B67B14]' };
+  return { Icon: X, label: 'Limited', className: 'text-[#B84040]' };
 };
 
 export const WhyHopon: React.FC = () => {
   const renderCell = (cell: CapabilityCell) => {
+    const tone = capabilityTone(cell.tone);
+    const ToneIcon = tone.Icon;
     return (
       <div>
         <p>
-          <span className={'inline-flex max-w-full break-words rounded-full border px-3 py-1.5 font-display text-[17px] font-bold leading-5 ' + capabilityTone(cell.tone)}>{cell.keyword}</span>
+          <span className="inline-flex max-w-full items-center gap-2 break-words rounded-full border border-black/10 bg-white/75 px-2 py-0.5 font-display text-[14px] font-bold leading-5 text-hopon-black/85">
+            <span className={'inline-flex h-4 w-4 shrink-0 items-center justify-center ' + tone.className} title={tone.label} aria-label={tone.label}>
+              <ToneIcon className="h-3 w-3" strokeWidth={3} aria-hidden="true" />
+            </span>
+            <span>{cell.keyword}</span>
+          </span>
         </p>
-        <p className="mt-2 text-sm leading-5 text-black/60 md:text-[15px] md:leading-6">{cell.descriptor}</p>
+        <p className="mt-1 text-[11px] leading-[1.3] text-black/60 md:text-[12px] md:leading-[1.3]">{cell.descriptor}</p>
       </div>
     );
   };
 
   return (
-    <AnimatedSection id="why" className="bg-hopon-black text-white">
+    <AnimatedSection id="why" style={{ paddingTop: '42px', paddingBottom: '42px' }} className="bg-hopon-black text-white">
       <div>
-        <p className="mb-4 font-mono text-xs uppercase text-white/50">Why hOpOn</p>
-        <h2 className="max-w-3xl font-display text-4xl font-bold leading-tight md:text-6xl">Built to learn from every campaign.</h2>
-        <p className="mt-5 max-w-3xl text-base leading-7 text-white/70 md:text-lg">Compare how each model plans, matches, measures, and improves.</p>
+        <p className="mb-2 font-mono text-[11px] uppercase tracking-wide text-white/50">Why hOpOn</p>
+        <h2 className="max-w-3xl font-display text-3xl font-bold leading-tight md:text-4xl">Built to learn from every campaign.</h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-white/70 md:text-base">Compare how each model plans, matches, measures, and improves.</p>
       </div>
 
-      <div className="mt-8 hidden overflow-hidden rounded-[32px] border border-black/10 bg-[#F7F2E8] text-hopon-black shadow-[0_24px_80px_rgba(0,0,0,0.2)] md:block">
-        <div className="grid grid-cols-[minmax(170px,1.05fr)_repeat(3,minmax(0,1fr))] border-b border-black/10">
-          <div className="flex items-end px-5 py-6 font-mono text-[10px] uppercase tracking-[0.14em] text-black/45 md:px-6">Capability</div>
-          {comparisonModels.map((model) => (
-            <div key={model.id} className={'border-l px-5 py-6 md:px-6 ' + modelSurface(model.id)}>
-              <p className="font-display text-xl font-bold leading-tight md:text-2xl">{model.name}</p>
-              <p className="mt-1 text-sm text-black/50">{model.description}</p>
-              {model.id === 'hopon' && <span className="mt-3 inline-flex rounded-full border border-hopon-red/20 bg-white px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide text-hopon-red">Closed loop</span>}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9px] uppercase tracking-[0.12em] text-white/50" aria-label="Capability signal legend">
+        <span className="text-white/35">Signal key</span>
+        <span className="inline-flex items-center gap-1"><Check className="h-3 w-3 text-[#2F7D5B]" strokeWidth={3} aria-hidden="true" />Strong</span>
+        <span className="inline-flex items-center gap-1"><Minus className="h-3 w-3 text-[#B67B14]" strokeWidth={3} aria-hidden="true" />Partial</span>
+        <span className="inline-flex items-center gap-1"><X className="h-3 w-3 text-[#B84040]" strokeWidth={3} aria-hidden="true" />Limited</span>
+      </div>
+
+      <div
+        className="relative mt-3 hidden md:block"
+      >
+        <div className="grid overflow-hidden rounded-[28px] border border-black/10 bg-[#F7F2E8] text-hopon-black shadow-[0_14px_42px_rgba(0,0,0,0.14)] grid-cols-[minmax(170px,0.82fr)_repeat(3,minmax(0,1fr))]" style={{ gridTemplateRows: `max-content repeat(${capabilityRows.length}, max-content)` }}>
+          <div style={{ gridColumn: 1, gridRow: 1 }} className="flex items-end bg-[#F2EADB] px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.14em] text-black/55 md:px-4">Capability</div>
+          {comparisonModels.map((model, modelIndex) => (
+            <div
+              key={model.id}
+              style={{ gridColumn: modelIndex + 2, gridRow: 1 }}
+              className={model.id === 'hopon'
+                ? 'border-l border-black/18 bg-white px-3 py-1.5 text-center font-semibold shadow-[inset_1px_0_rgba(255,42,42,0.10),inset_-1px_0_rgba(255,42,42,0.10),0_8px_22px_rgba(255,42,42,0.07)] md:px-4'
+                : 'border-l border-black/10 bg-white/75 px-3 py-1.5 text-center text-hopon-black/72 md:px-4'}
+            >
+              <div className="relative flex items-center justify-center">
+                <p className={'font-display text-lg leading-tight md:text-xl ' + (model.id === 'hopon' ? 'font-black' : 'font-bold')}>{model.name}</p>
+                {model.id === 'hopon' && (
+                  <span role="img" aria-label="hOpOn closed loop" className="absolute right-0 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-full border border-black/10 bg-[#F7F2E8] px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wide text-black/55">
+                    <Star className="h-3 w-3 fill-hopon-red text-hopon-red" aria-hidden="true" />
+                    <span>Closed loop</span>
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-black/45">{model.description}</p>
             </div>
           ))}
+
+          {capabilityRows.map((row, rowIndex) => {
+            const gridRow = rowIndex + 2;
+            return (
+              <React.Fragment key={row.label}>
+                <div style={{ gridColumn: 1, gridRow }} className="flex items-start border-t border-black/10 bg-[#F2EADB] px-3 py-1.5 font-display text-[15px] font-semibold leading-5 text-black/80 md:px-4 md:text-base">
+                  <span className="mr-2 mt-0.5 font-mono text-[9px] font-normal text-hopon-red">0{rowIndex + 1}</span>
+                  <span>{row.label}</span>
+                </div>
+                {comparisonModels.map((model, modelIndex) => (
+                  <div
+                    key={model.id}
+                    style={{ gridColumn: modelIndex + 2, gridRow }}
+                    className={model.id === 'hopon'
+                      ? 'border-l border-t border-black/10 bg-white px-3 py-1.5 text-center shadow-[inset_1px_0_rgba(255,42,42,0.08),inset_-1px_0_rgba(255,42,42,0.08)] md:px-4'
+                      : 'border-l border-t border-black/10 bg-white/75 px-3 py-1.5 text-center md:px-4'}
+                  >
+                    {renderCell(row[model.id])}
+                  </div>
+                ))}
+              </React.Fragment>
+            );
+          })}
+
         </div>
-        {capabilityRows.map((row, rowIndex) => (
-          <div key={row.label} className={'grid grid-cols-[minmax(170px,1.05fr)_repeat(3,minmax(0,1fr))] ' + (rowIndex < capabilityRows.length - 1 ? 'border-b border-black/10' : '')}>
-            <div className="flex items-start px-5 py-6 font-display text-base font-semibold leading-6 text-black/75 md:px-6 md:py-7 md:text-lg">{row.label}</div>
-            {comparisonModels.map((model) => {
-              const cell = row[model.id];
-              return <div key={model.id} className={'border-l px-5 py-6 md:px-6 md:py-7 ' + modelSurface(model.id)}>{renderCell(cell)}</div>;
-            })}
-          </div>
-        ))}
       </div>
 
       <div className="mt-8 grid gap-3 md:hidden">
@@ -707,10 +864,28 @@ export const WhyHopon: React.FC = () => {
             <h3 className="font-display text-lg font-bold leading-6">{row.label}</h3>
             <div className="mt-3 space-y-2">
               {comparisonModels.map((model) => (
-                <div key={model.id} className={'min-w-0 rounded-2xl border p-3 ' + modelSurface(model.id)}>
-                  <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-black/45">{model.name}</p>
+                <div key={model.id} className={'min-w-0 rounded-2xl border p-3 text-center ' + (model.id === 'hopon' ? 'p-3.5 ' : '') + modelSurface(model.id, true)}>
+                  <p className="flex items-center justify-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em] text-black/45">
+                    <span>{model.name}</span>
+                    {model.id === 'hopon' && (
+                      <span role="img" aria-label="hOpOn highlighted" className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-hopon-red text-white">
+                        <Star className="h-3 w-3 fill-white text-white" aria-hidden="true" />
+                      </span>
+                    )}
+                  </p>
                   <p className="mt-1">
-                    <span className={'inline-flex max-w-full break-words rounded-full border px-2.5 py-1 font-display text-base font-bold leading-5 ' + capabilityTone(row[model.id].tone)}>{row[model.id].keyword}</span>
+                    {(() => {
+                      const tone = capabilityTone(row[model.id].tone);
+                      const ToneIcon = tone.Icon;
+                      return (
+                    <span className="inline-flex max-w-full items-center gap-2 break-words rounded-full border border-black/10 bg-white/75 px-2.5 py-1 font-display text-base font-bold leading-5 text-hopon-black/85">
+                      <span className={'inline-flex h-4 w-4 shrink-0 items-center justify-center ' + tone.className} title={tone.label} aria-label={tone.label}>
+                        <ToneIcon className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" />
+                      </span>
+                      <span>{row[model.id].keyword}</span>
+                    </span>
+                      );
+                    })()}
                   </p>
                   <p className="mt-1 text-sm leading-5 text-black/60">{row[model.id].descriptor}</p>
                 </div>
