@@ -816,7 +816,7 @@ export const WhyHopon: React.FC = () => {
               key={model.id}
               style={{ gridColumn: modelIndex + 2, gridRow: 1 }}
               className={model.id === 'hopon'
-                ? 'border-l border-black/18 bg-white px-3 py-1.5 text-center font-semibold shadow-[inset_1px_0_rgba(255,42,42,0.10),inset_-1px_0_rgba(255,42,42,0.10),0_8px_22px_rgba(255,42,42,0.07)] md:px-4'
+                ? 'border-l border-black/18 bg-white px-3 py-1.5 text-center font-semibold shadow-[inset_1px_0_rgba(0,0,0,0.055),inset_-1px_0_rgba(0,0,0,0.055),0_8px_22px_rgba(0,0,0,0.09)] md:px-4'
                 : 'border-l border-black/10 bg-white/75 px-3 py-1.5 text-center text-hopon-black/72 md:px-4'}
             >
               <div className="relative flex items-center justify-center">
@@ -845,7 +845,7 @@ export const WhyHopon: React.FC = () => {
                     key={model.id}
                     style={{ gridColumn: modelIndex + 2, gridRow }}
                     className={model.id === 'hopon'
-                      ? 'border-l border-t border-black/10 bg-white px-3 py-1.5 text-center shadow-[inset_1px_0_rgba(255,42,42,0.08),inset_-1px_0_rgba(255,42,42,0.08)] md:px-4'
+                      ? 'border-l border-t border-black/10 bg-white px-3 py-1.5 text-center shadow-[inset_1px_0_rgba(0,0,0,0.04),inset_-1px_0_rgba(0,0,0,0.04)] md:px-4'
                       : 'border-l border-t border-black/10 bg-white/75 px-3 py-1.5 text-center md:px-4'}
                   >
                     {renderCell(row[model.id])}
