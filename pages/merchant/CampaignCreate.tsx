@@ -13,7 +13,7 @@ import {
 import { getCampaignTypeOptions } from '../../lib/merchant/campaignTypeLabels';
 import { getPlatformOptions, type CreatorSocialPlatform } from '../../lib/merchant/platformLabels';
 import { hasMapboxToken } from '../../lib/merchant/mapboxAddress';
-import type { CampaignDraft, Restaurant, StructuredAddress } from '../../lib/merchant/types';
+import type { CampaignDraft, CampaignVisitMode, Restaurant, StructuredAddress } from '../../lib/merchant/types';
 import { AddressAutocomplete } from '../../components/merchant/AddressAutocomplete';
 import { useMerchantLocale } from '../../context/MerchantLocaleContext';
 
@@ -55,6 +55,7 @@ export const CampaignCreate: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [typeValue, setTypeValue] = useState<'FREE_TASTING' | 'PAID_POST'>('FREE_TASTING');
+  const [visitMode, setVisitMode] = useState<CampaignVisitMode>('appointment');
   const [selectedPlatforms, setSelectedPlatforms] = useState<CreatorSocialPlatform[]>([]);
   const [budget, setBudget] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -84,6 +85,11 @@ export const CampaignCreate: React.FC = () => {
           descriptionPlaceholder: official ? '公告内容、说明' : '活动介绍、流程、注意事项',
           details: official ? '公告详情' : '活动详情',
           type: '类型',
+          visitMode: '到店方式',
+          appointment: '需要预约',
+          appointmentHint: '博主需先确认到店时间，再进行签到。',
+          walkIn: '直接 Walk-in',
+          walkInHint: '无需预约；申请通过后，博主到店即可签到。',
           platforms: '平台',
           platformsHint: '选择活动面向的创作者平台（可多选）',
           budget: '预算',
@@ -123,6 +129,11 @@ export const CampaignCreate: React.FC = () => {
           descriptionPlaceholder: official ? 'Announcement content' : 'Campaign introduction, process, notes',
           details: official ? 'Announcement Details' : 'Campaign Details',
           type: 'Type',
+          visitMode: 'Visit flow',
+          appointment: 'Appointment required',
+          appointmentHint: 'The creator confirms a visit time before check-in.',
+          walkIn: 'Walk-in',
+          walkInHint: 'No appointment; accepted creators can check in when they arrive.',
           platforms: 'Platforms',
           platformsHint: 'Select platforms for this campaign (multi-select)',
           budget: 'Budget',
@@ -184,6 +195,7 @@ export const CampaignCreate: React.FC = () => {
         setTitle(draft?.title || (payload?.title as string) || '');
         setDescription((payload?.description as string) || draft?.overview || '');
         if (payload?.type === 'PAID_POST' || payload?.type === 'FREE_TASTING') setTypeValue(payload.type);
+        setVisitMode(payload?.visitMode === 'walk_in' ? 'walk_in' : 'appointment');
         setSelectedPlatforms(Array.isArray(payload?.platforms) ? (payload.platforms as CreatorSocialPlatform[]) : inferredPlatforms.filter((p) => ['xhs', 'douyin', 'instagram', 'tiktok'].includes(p)));
         setBudget((payload?.budget as string) || (draft?.suggested_budget_min || draft?.suggested_budget_max ? `${draft.suggested_budget_min ?? 0}-${draft.suggested_budget_max ?? 0}` : ''));
         setStartDate((payload?.startDate as string) || '');
@@ -207,6 +219,7 @@ export const CampaignCreate: React.FC = () => {
       title: title.trim(),
       description: description.trim(),
       type: typeValue,
+      visitMode,
       budget: budget.trim(),
       startDate,
       endDate,
@@ -303,6 +316,7 @@ export const CampaignCreate: React.FC = () => {
       title: title.trim(),
       description: description.trim(),
       type: typeValue,
+      visitMode,
       budget: normalizeBudget(budget),
       start_date: startDate || undefined,
       end_date: getEndDateForPayload(startDate, endDate),
@@ -408,6 +422,32 @@ export const CampaignCreate: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {!isOfficial ? (
+              <div>
+                <span className="mb-2 block font-mono text-xs uppercase tracking-wider text-black/70">{copy.visitMode}</span>
+                <div className="flex flex-wrap gap-2">
+                  {([
+                    { value: 'appointment' as const, label: copy.appointment },
+                    { value: 'walk_in' as const, label: copy.walkIn },
+                  ]).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setVisitMode(option.value)}
+                      className={`border-2 px-4 py-2 font-mono text-sm uppercase ${
+                        visitMode === option.value ? 'border-black bg-hopon-black text-white' : 'border-black/30 text-black/70 hover:border-black'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-black/50">
+                  {visitMode === 'walk_in' ? copy.walkInHint : copy.appointmentHint}
+                </p>
+              </div>
+            ) : null}
 
             <div>
               <span className="mb-1 block font-mono text-xs uppercase tracking-wider text-black/70">{copy.platforms} *</span>

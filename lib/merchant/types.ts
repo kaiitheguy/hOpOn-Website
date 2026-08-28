@@ -7,6 +7,7 @@ export type ApplicationStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
 export type DeliverableStatus = 'SUBMITTED' | 'APPROVED' | 'REVISION_REQUESTED';
 export type DraftPostStatus = 'SUBMITTED' | 'APPROVED' | 'REVISION_REQUESTED';
 export type CampaignStatus = 'OPEN' | 'CLOSED';
+export type CampaignVisitMode = 'appointment' | 'walk_in';
 
 export interface Restaurant {
   id: string;
@@ -82,6 +83,7 @@ export interface Campaign {
   longitude?: number | null;
   mapboxId?: string | null;
   requirements?: string[] | null;
+  visitMode?: CampaignVisitMode;
   merchant?: CampaignMerchant | null;
   [key: string]: unknown;
 }

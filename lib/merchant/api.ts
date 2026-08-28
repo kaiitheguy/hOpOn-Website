@@ -352,6 +352,7 @@ function mapRowToCampaign(row: Record<string, unknown>): Campaign {
     images: (row.images as string[] | null) ?? [],
     platforms: (row.platforms as string[] | null) ?? [],
     isInternalTest: row.is_internal_test === true,
+    visitMode: row.visit_mode === 'walk_in' ? 'walk_in' : 'appointment',
   } as Record<string, unknown>;
   if (r.start_date != null && r.starts_at == null) r.starts_at = r.start_date;
   if (r.end_date != null && r.ends_at == null) r.ends_at = r.end_date;
@@ -504,6 +505,7 @@ export async function createCampaign(payload: {
   mapboxId?: string;
   requirements?: string[];
   is_official?: boolean;
+  visitMode?: 'appointment' | 'walk_in';
 }): Promise<Campaign | null> {
   const restaurantId = getSupabaseUserId(payload.restaurant_id);
   const allowedPlatforms = ['xhs', 'douyin', 'instagram', 'tiktok'] as const;
@@ -542,6 +544,7 @@ export async function createCampaign(payload: {
     mapbox_id: payload.mapboxId ?? null,
     requirements: payload.requirements ?? [],
     is_internal_test: isTestAccount,
+    visit_mode: payload.visitMode === 'walk_in' ? 'walk_in' : 'appointment',
   };
 
   let { data, error } = await supabase
@@ -550,11 +553,11 @@ export async function createCampaign(payload: {
     .select()
     .single();
 
-  if (error && (error.code === '42703' || error.message?.includes('is_internal_test'))) {
-    const { is_internal_test: _omit, ...withoutInternalTest } = row;
+  if (error && (error.code === '42703' || /is_internal_test|visit_mode/i.test(error.message || ''))) {
+    const { is_internal_test: _omit, visit_mode: _omitVisitMode, ...withoutPendingColumns } = row;
     ({ data, error } = await supabase
       .from('campaigns')
-      .insert(withoutInternalTest)
+      .insert(withoutPendingColumns)
       .select()
       .single());
   }
@@ -568,11 +571,12 @@ export async function createCampaign(payload: {
 
 export async function updateCampaign(
   id: string,
-  updates: Partial<Pick<Campaign, 'title' | 'description' | 'images' | 'platforms' | 'status' | 'starts_at' | 'ends_at'>>
+  updates: Partial<Pick<Campaign, 'title' | 'description' | 'images' | 'platforms' | 'status' | 'starts_at' | 'ends_at' | 'visitMode'>>
 ): Promise<Campaign | null> {
   const payload: Record<string, unknown> = { ...updates };
   if (updates.starts_at !== undefined) { payload.start_date = updates.starts_at; delete payload.starts_at; }
   if (updates.ends_at !== undefined) { payload.end_date = updates.ends_at; delete payload.ends_at; }
+  if (updates.visitMode !== undefined) { payload.visit_mode = updates.visitMode; delete payload.visitMode; }
   const { data, error } = await supabase
     .from('campaigns')
     .update(payload)
@@ -1220,6 +1224,7 @@ async function getApplicationAccessRow(
         title,
         status,
         restaurant_id,
+        visit_mode,
         restaurant_profiles!campaigns_restaurant_id_fkey ( name )
       ),
       creator:creator_profiles(name, handle, followers, tags)
@@ -1561,6 +1566,8 @@ export async function createVisitScheduleProposal(
   if (!uid) return { ok: false, error: 'auth' };
   const access = await getApplicationAccessRow(applicationId);
   if (!access) return { ok: false, error: 'forbidden' };
+  if (access.row.status !== 'ACCEPTED' || access.row.verified_at) return { ok: false, error: 'status' };
+  if (access.row.schedule_status === 'not_required') return { ok: false, error: 'not_required' };
   const slim = slots.slice(0, 3).filter((slot) => slot.start);
   if (!slim.length) return { ok: false, error: 'slots' };
   await supersedePendingProposals(applicationId);
@@ -1621,6 +1628,8 @@ export async function confirmVisitScheduleProposal(proposalId: string, slot: Vis
 export async function reopenApplicationScheduling(applicationId: string): Promise<boolean> {
   const access = await getApplicationAccessRow(applicationId);
   if (!access || access.role !== 'restaurant') return false;
+  const campaign = access.row.campaigns as { visit_mode?: string } | null;
+  if (campaign?.visit_mode === 'walk_in') return false;
   const deadline = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
   const { error } = await supabase
     .from('applications')
