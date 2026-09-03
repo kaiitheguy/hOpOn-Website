@@ -273,6 +273,14 @@ type RedeemAppUserRow = {
   is_test_account: boolean | null;
 };
 
+type RedeemDeliverableRow = {
+  application_id: string;
+  status: string;
+  submitted_url: string | null;
+  external_permalink: string | null;
+  xhs_url: string | null;
+};
+
 type RedeemCampaignRow = {
   id: string;
   restaurant_id: string;
@@ -306,6 +314,32 @@ async function fetchRedeemAppUsers(ids: string[]): Promise<Map<string, RedeemApp
   }
 
   return new Map(((data || []) as RedeemAppUserRow[]).map((row) => [row.id, row]));
+}
+
+async function fetchApprovedFinalApplicationIds(ids: string[]): Promise<Set<string> | null> {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Set();
+
+  const { data, error } = await getClient()
+    .from('deliverables')
+    .select('application_id,status,submitted_url,external_permalink,xhs_url')
+    .in('application_id', uniqueIds)
+    .eq('status', 'APPROVED');
+
+  if (error) {
+    console.warn('[redeem visibility] final deliverable eligibility query failed', error.message);
+    return null;
+  }
+
+  return new Set(
+    ((data || []) as RedeemDeliverableRow[])
+      .filter((row) => (
+        row.status === 'APPROVED' &&
+        [row.submitted_url, row.external_permalink, row.xhs_url]
+          .some((value) => typeof value === 'string' && /^https?:\/\//i.test(value.trim()))
+      ))
+      .map((row) => row.application_id),
+  );
 }
 
 function isApprovedProductionUser(
@@ -691,7 +725,15 @@ export async function getHoponRedeemCampaignByLink(
       return null;
     }
 
-    const creatorIds = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+    const approvedFinalApplicationIds = await fetchApprovedFinalApplicationIds(
+      ((applicationRows || []) as unknown as RedeemApplicationRow[]).map((row) => row.id),
+    );
+    if (!approvedFinalApplicationIds) return null;
+    const eligibleApplicationRows = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+      .filter((row) => approvedFinalApplicationIds.has(row.id));
+    if (eligibleApplicationRows.length === 0) return null;
+
+    const creatorIds = eligibleApplicationRows
       .map((row) => row.creator_id);
     const creatorUsers = await fetchRedeemAppUsers(creatorIds);
     if (!creatorUsers) return null;
@@ -702,7 +744,7 @@ export async function getHoponRedeemCampaignByLink(
     );
     if (campaignRow.is_internal_test === true && !directTestQa) return null;
     const eligibleCreatorIds = new Set(
-      ((applicationRows || []) as unknown as RedeemApplicationRow[])
+      eligibleApplicationRows
         .filter((row) => {
           const user = creatorUsers.get(row.creator_id);
           if (!user || user.role !== 'creator' || user.status !== 'approved') return false;
@@ -712,7 +754,7 @@ export async function getHoponRedeemCampaignByLink(
         .map((row) => row.creator_id),
     );
 
-    const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+    const creators = eligibleApplicationRows
       .map((row) => checkedInCreatorFromApplication(
         row,
         campaignId,
@@ -839,18 +881,26 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
             return null;
           }
 
+          const approvedFinalApplicationIds = await fetchApprovedFinalApplicationIds(
+            ((applicationRows || []) as unknown as RedeemApplicationRow[]).map((row) => row.id),
+          );
+          if (!approvedFinalApplicationIds) return null;
+          const eligibleApplicationRows = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+            .filter((row) => approvedFinalApplicationIds.has(row.id));
+          if (eligibleApplicationRows.length === 0) return null;
+
           const creatorUsers = await fetchRedeemAppUsers(
-            ((applicationRows || []) as unknown as RedeemApplicationRow[]).map((row) => row.creator_id),
+            eligibleApplicationRows.map((row) => row.creator_id),
           );
           if (!creatorUsers) return null;
 
           const eligibleCreatorIds = new Set(
-            ((applicationRows || []) as unknown as RedeemApplicationRow[])
+            eligibleApplicationRows
               .filter((row) => isApprovedProductionUser(creatorUsers.get(row.creator_id), 'creator'))
               .map((row) => row.creator_id),
           );
 
-          const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+          const creators = eligibleApplicationRows
             .map((row) => checkedInCreatorFromApplication(
               row,
               campaign.id,
