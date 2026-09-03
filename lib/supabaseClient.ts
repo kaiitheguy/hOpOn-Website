@@ -266,20 +266,58 @@ type RedeemApplicationRow = {
   creator_profiles: SupabaseRelation<RedeemCreatorProfileRow>;
 };
 
+type RedeemAppUserRow = {
+  id: string;
+  role: string;
+  status: string;
+  is_test_account: boolean | null;
+};
+
 type RedeemCampaignRow = {
   id: string;
+  restaurant_id: string;
   title: string;
   description?: string | null;
   status: string;
   start_date: string | null;
   end_date: string | null;
   platforms: string[] | null;
+  is_internal_test: boolean | null;
   restaurant_profiles: SupabaseRelation<{ name: string | null }>;
 };
 
 function firstRelated<T>(value: SupabaseRelation<T> | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+async function fetchRedeemAppUsers(ids: string[]): Promise<Map<string, RedeemAppUserRow> | null> {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await getClient()
+    .from('app_users')
+    .select('id,role,status,is_test_account')
+    .in('id', uniqueIds);
+
+  if (error) {
+    console.warn('[redeem visibility] app user eligibility query failed', error.message);
+    return null;
+  }
+
+  return new Map(((data || []) as RedeemAppUserRow[]).map((row) => [row.id, row]));
+}
+
+function isApprovedProductionUser(
+  user: RedeemAppUserRow | undefined,
+  role: 'creator' | 'restaurant',
+): boolean {
+  return Boolean(
+    user &&
+    user.role === role &&
+    user.status === 'approved' &&
+    user.is_test_account !== true,
+  );
 }
 
 const platformLabel = (platform?: string | null): string => {
@@ -305,7 +343,8 @@ const normalizeHandle = (handle?: string | null): string =>
 function checkedInCreatorFromApplication(
   application: RedeemApplicationRow,
   campaignId: string,
-  platform?: string | null
+  platform?: string | null,
+  eligibleCreatorIds?: ReadonlySet<string>,
 ): HoponRedeemCreator | null {
   if (
     application.campaign_id !== campaignId ||
@@ -315,6 +354,8 @@ function checkedInCreatorFromApplication(
   ) {
     return null;
   }
+
+  if (eligibleCreatorIds && !eligibleCreatorIds.has(application.creator_id)) return null;
 
   const creator = firstRelated(application.creator_profiles);
   if (!creator?.id || creator.id !== application.creator_id) return null;
@@ -329,7 +370,6 @@ function checkedInCreatorFromApplication(
   };
 }
 
-const TEST_CAMPAIGN_PATTERN = /test|demo|sandbox|internal|\bqa\b|测试|測試/i;
 const VERIFY_AVATAR_CACHE_KEY = 'hopon:verify-avatar-cache:v1';
 const VERIFY_VISITOR_STORAGE_KEY = 'hopon:verify-anon-visitor:v1';
 
@@ -477,21 +517,6 @@ export function getOrCreateVerifyAnonymousVisitor(): HoponAnonymousVisitor {
   return { id: visitor.id, scope: visitor.scope, expiresAt: visitor.expiresAt };
 }
 
-function isLikelyPublicOpenCampaign(campaign: {
-  title?: string | null;
-  description?: string | null;
-  status?: string | null;
-  restaurant_profiles?: SupabaseRelation<{ name?: string | null }>;
-}): boolean {
-  if (campaign.status !== 'OPEN') return false;
-  const searchable = [
-    campaign.title,
-    campaign.description,
-    firstRelated(campaign.restaurant_profiles)?.name,
-  ].filter(Boolean).join(' ');
-  return !TEST_CAMPAIGN_PATTERN.test(searchable);
-}
-
 function normalizePublicRedeemCampaigns(raw: unknown): HoponRedeemCampaign[] {
   if (!Array.isArray(raw)) return [];
 
@@ -607,7 +632,9 @@ export async function getHoponRedeemCampaignByLink(
       .from('campaigns')
       .select(`
         id,
+        restaurant_id,
         title,
+        is_internal_test,
         status,
         start_date,
         end_date,
@@ -625,6 +652,12 @@ export async function getHoponRedeemCampaignByLink(
       return null;
     }
     const campaignRow = campaign as unknown as RedeemCampaignRow;
+
+    const merchantUsers = await fetchRedeemAppUsers([campaignRow.restaurant_id]);
+    const merchantUser = merchantUsers?.get(campaignRow.restaurant_id);
+    if (!merchantUsers || !merchantUser || merchantUser.role !== 'restaurant' || merchantUser.status !== 'approved') {
+      return null;
+    }
 
     let applicationQuery = getClient()
       .from('applications')
@@ -658,8 +691,34 @@ export async function getHoponRedeemCampaignByLink(
       return null;
     }
 
+    const creatorIds = ((applicationRows || []) as unknown as RedeemApplicationRow[])
+      .map((row) => row.creator_id);
+    const creatorUsers = await fetchRedeemAppUsers(creatorIds);
+    if (!creatorUsers) return null;
+
+    const directTestQa = Boolean(creatorId) && (
+      merchantUser?.is_test_account === true ||
+      creatorUsers.get(creatorId)?.is_test_account === true
+    );
+    if (campaignRow.is_internal_test === true && !directTestQa) return null;
+    const eligibleCreatorIds = new Set(
+      ((applicationRows || []) as unknown as RedeemApplicationRow[])
+        .filter((row) => {
+          const user = creatorUsers.get(row.creator_id);
+          if (!user || user.role !== 'creator' || user.status !== 'approved') return false;
+          if (isApprovedProductionUser(user, 'creator')) return true;
+          return directTestQa && row.creator_id === creatorId;
+        })
+        .map((row) => row.creator_id),
+    );
+
     const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
-      .map((row) => checkedInCreatorFromApplication(row, campaignId, campaignRow.platforms?.[0]))
+      .map((row) => checkedInCreatorFromApplication(
+        row,
+        campaignId,
+        campaignRow.platforms?.[0],
+        eligibleCreatorIds,
+      ))
       .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
 
     if (creators.length === 0) return null;
@@ -720,12 +779,14 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
       .from('campaigns')
       .select(`
         id,
+        restaurant_id,
         title,
         description,
         status,
         start_date,
         end_date,
         platforms,
+        is_internal_test,
         restaurant_profiles!campaigns_restaurant_id_fkey (
           name
         )
@@ -744,8 +805,13 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
 
     const campaigns = await Promise.all(
       campaignRows
-        .filter((campaign) => isLikelyPublicOpenCampaign(campaign))
+        .filter((campaign) => campaign.status === 'OPEN' && campaign.is_internal_test !== true)
         .map(async (campaign): Promise<HoponRedeemCampaign | null> => {
+          const merchantUsers = await fetchRedeemAppUsers([campaign.restaurant_id]);
+          if (!merchantUsers || !isApprovedProductionUser(merchantUsers.get(campaign.restaurant_id), 'restaurant')) {
+            return null;
+          }
+
           const { data: applicationRows, error: appError } = await getClient()
             .from('applications')
             .select(`
@@ -770,10 +836,27 @@ export async function listActiveHoponRedeemCampaigns(): Promise<HoponRedeemCampa
 
           if (appError) {
             console.warn('[listActiveHoponRedeemCampaigns] creator query failed', appError.message);
+            return null;
           }
 
+          const creatorUsers = await fetchRedeemAppUsers(
+            ((applicationRows || []) as unknown as RedeemApplicationRow[]).map((row) => row.creator_id),
+          );
+          if (!creatorUsers) return null;
+
+          const eligibleCreatorIds = new Set(
+            ((applicationRows || []) as unknown as RedeemApplicationRow[])
+              .filter((row) => isApprovedProductionUser(creatorUsers.get(row.creator_id), 'creator'))
+              .map((row) => row.creator_id),
+          );
+
           const creators = ((applicationRows || []) as unknown as RedeemApplicationRow[])
-            .map((row) => checkedInCreatorFromApplication(row, campaign.id, campaign.platforms?.[0]))
+            .map((row) => checkedInCreatorFromApplication(
+              row,
+              campaign.id,
+              campaign.platforms?.[0],
+              eligibleCreatorIds,
+            ))
             .filter((creator): creator is HoponRedeemCreator => Boolean(creator));
 
           if (creators.length === 0) return null;
