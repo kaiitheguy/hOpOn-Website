@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { MerchantLocaleProvider } from './context/MerchantLocaleContext';
@@ -46,6 +46,10 @@ import { Pricing } from './pages/Pricing';
 import { Merchants } from './pages/Merchants';
 import { Creators } from './pages/Creators';
 import { Partners } from './pages/Partners';
+import LaunchFrame from './features/launch/LaunchFrame';
+const LaunchLanding = lazy(() => import('./features/launch/LaunchLanding'));
+const LaunchWorkspace = lazy(() => import('./features/launch/LaunchWorkspace'));
+const LaunchCreator = lazy(() => import('./features/launch/LaunchCreator'));
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -57,6 +61,12 @@ root.render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
+        <Route path="/launch" element={<LaunchFrame />}>
+          <Route index element={<LaunchLanding />} />
+          <Route path="demo" element={<LaunchWorkspace />} />
+          <Route path="creator" element={<LaunchCreator />} />
+          <Route path="*" element={<Navigate to="/launch" replace />} />
+        </Route>
         <Route path="/" element={<App />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/merchants" element={<Merchants />} />
