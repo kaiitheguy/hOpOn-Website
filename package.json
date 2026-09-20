@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-florasis.mjs && vite build",
     "typecheck": "tsc --noEmit",
     "test:contact-inquiry": "node scripts/contact-inquiry-contract.test.mjs",
     "test:legal": "node scripts/legal-contract.test.mjs",
     "verify:crawler-files": "node scripts/verify-crawler-files.mjs",
     "preview": "vite preview",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build:florasis": "node scripts/build-florasis.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.96.0",
