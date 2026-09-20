@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated isolated brand demo; built before the main website.
+/public/florasis-demo/
+/demos/florasis/node_modules/
+/demos/florasis/*.tsbuildinfo

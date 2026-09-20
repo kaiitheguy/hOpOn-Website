@@ -60,15 +60,32 @@
           "value": "noindex, nofollow"
         }
       ]
+    },
+    {
+      "source": "/florasis-demo/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ],
   "rewrites": [
+    {
+      "source": "/launch/florasis",
+      "destination": "/florasis-demo/index.html"
+    },
+    {
+      "source": "/launch/florasis/:path*",
+      "destination": "/florasis-demo/index.html"
+    },
     {
       "source": "/config.js",
       "destination": "/api/config"
     },
     {
-      "source": "/((?!assets/|api/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
+      "source": "/((?!florasis-demo/|assets/|api/|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ]
