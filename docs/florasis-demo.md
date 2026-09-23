@@ -11,11 +11,12 @@
 ## Demo boundaries
 
 - Florasis is an illustrative brand reference, not a client or confirmed partner. Creators, quotes, budgets and performance are fictional examples.
-- The brand, team and creator switches are demo perspectives, not authenticated roles. Never enter customer secrets, production files or private commercial data here.
-- Progress and optional media previews stay in the current browser's IndexedDB. They are not shared between people, devices or browser profiles. Reset restores the seed campaign and clears this demo's uploaded files.
-- A file attachment is a browser-local preview, not a server upload. Accepted files: JPG, PNG, WebP, MP4 and WebM, up to 20 MB.
-- Publishing, reporting, fees and GEO tasks are simulations. This demo does not send messages, post to Instagram, purchase media, pay creators or query a provider.
-- Instagram data connections remain **waiting for connection**. There is no API key field or server-side credential handling in this public entry.
+- This public entry is a brand workspace only. It covers curated creator selection, content review and feedback, approval, pending results, and GEO insight samples. There is no role selector, creator submission surface, team management surface, provider-connection form, upload control, publish simulator, reset control, or internal brief/cost editor.
+- Progress and previously stored media previews stay in the current browser's IndexedDB. They are not shared between people, devices or browser profiles. Existing browser data remains available, but this public entry does not add a new upload or reset workflow.
+- New reporting remains empty while awaiting third-party platform data. Any browser-local historical simulated publication and metrics remain explicitly labeled as fictional examples; they are not real results. The demo does not send messages, post to Instagram, purchase media, pay creators or query a provider.
+- GEO is bundled with the promotion in this demo rather than sold as a separate monthly brand subscription. Provider costs are an internal consideration; this change does not introduce a new customer price.
+- Legacy ?mode=team, ?mode=creator, section=team, section=data, and section=submit links safely return to the brand overview. Supported brand sections may still be opened with section=overview, section=creators, section=review, section=results, or section=geo.
+- Instagram and other provider connections remain absent. There is no API key field or server-side credential handling in this public entry.
 
 The earlier owner-only Sites app remains separate. Its ChatGPT authentication, D1 database, R2 files and encrypted provider settings are not migrated or exposed by this frontend port.
 
@@ -37,4 +38,4 @@ npm run verify:crawler-files
 npm run preview -- --host 127.0.0.1
 ```
 
-In a plain Vite preview, open `/florasis-demo/index.html`; `/launch/florasis` is the Vercel rewrite. Add `?mode=team&section=data` to inspect the waiting integration screen. Test brand shortlist confirmation, content revisions and approval, team simulated publishing, a local file preview, refresh persistence and reset. Also smoke-test `/`, `/launch` and `/merchant/login` on the Vercel deployment.
+In a plain Vite preview, open /florasis-demo/index.html; /launch/florasis is the Vercel rewrite. Test brand shortlist selection and confirmation, draft feedback and approval, browser persistence and existing media previews, legacy links returning to the brand overview, empty results waiting for third-party sync, and GEO shown as bundled with the promotion. Also smoke-test /, /launch and /merchant/login on the Vercel deployment.
