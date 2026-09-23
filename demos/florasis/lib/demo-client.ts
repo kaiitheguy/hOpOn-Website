@@ -1,12 +1,8 @@
-import { seedDemo, visibleState, instagramOnly, type DemoState, type Mode, type Creator } from './demo';
+import { seedDemo, visibleState, instagramOnly, type DemoState } from './demo';
 
 const DATABASE = 'hopon-florasis-public-demo-v1';
 const media = new Map<string, string>();
-const allowed: Record<Mode, string[]> = {
-  brand: ['toggle', 'confirm', 'comment', 'approve', 'geo'],
-  team: ['comment', 'version', 'publish', 'creator', 'brief', 'reset', 'geo'],
-  creator: ['version', 'comment'],
-};
+const allowed = ['toggle', 'confirm', 'comment', 'approve', 'geo'];
 let opening: Promise<IDBDatabase> | undefined;
 function database() {
   if (!opening) opening = new Promise<IDBDatabase>((resolve, reject) => {
@@ -20,7 +16,7 @@ function database() {
   return opening;
 }
 function failure(error?: DOMException | null) {
-  return new Error(error?.name === 'QuotaExceededError' ? '浏览器空间不足，文件未保存。请换用较小文件或清理此演示的数据。' : '无法保存这次演示操作，请重试。');
+  return new Error(error?.name === 'QuotaExceededError' ? '浏览器空间不足，演示进度未保存。请释放浏览器存储空间后重试。' : '无法保存这次演示操作，请重试。');
 }
 function requestValue<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {request.onsuccess = () => resolve(request.result); request.onerror = () => reject(failure(request.error));});
@@ -33,7 +29,7 @@ async function populateMedia(state: DemoState) {
     if (value instanceof Blob) media.set(key, URL.createObjectURL(value));
   }));
 }
-function stateTransaction(update?: (state: DemoState) => DemoState, clearFiles = false) {
+function stateTransaction(update?: (state: DemoState) => DemoState) {
   return database().then(db => new Promise<DemoState>((resolve, reject) => {
     const transaction = db.transaction(['state', 'files'], 'readwrite');
     const store = transaction.objectStore('state');
@@ -45,7 +41,6 @@ function stateTransaction(update?: (state: DemoState) => DemoState, clearFiles =
         const current = instagramOnly(read.result ?? seedDemo());
         result = update ? update(structuredClone(current)) : current;
         store.put(result, 'campaign');
-        if (clearFiles) transaction.objectStore('files').clear();
       } catch (e) {problem = e instanceof Error ? e : new Error('操作失败。'); transaction.abort();}
     };
     transaction.oncomplete = () => resolve(result);
@@ -53,18 +48,17 @@ function stateTransaction(update?: (state: DemoState) => DemoState, clearFiles =
     transaction.onerror = () => reject(problem ?? failure(transaction.error));
   }));
 }
-export async function loadDemo(mode: Mode): Promise<DemoState> {
+export async function loadDemo(_mode: 'brand' = 'brand'): Promise<DemoState> {
   const state = await stateTransaction();
   await populateMedia(state);
-  return visibleState(state, mode);
+  return visibleState(state, 'brand');
 }
 const text = (value: unknown) => typeof value === 'string' ? value.trim().slice(0, 5000) : '';
 function requireValue(condition: unknown, message: string): asserts condition {if (!condition) throw new Error(message);}
 
 export async function mutateDemo(input: Record<string, unknown>): Promise<DemoState> {
-  const mode = input.mode as Mode;
   const action = String(input.action ?? '');
-  requireValue(allowed[mode]?.includes(action), '请切换到对应演示视角完成此操作。');
+  requireValue(input.mode === 'brand' && allowed.includes(action), '此演示仅支持品牌侧操作。');
   const next = await stateTransaction(state => {
     requireValue(state.revision === input.revision, '项目已在另一标签页更新，请刷新项目后再试。');
     const at = new Date().toISOString();
@@ -86,61 +80,19 @@ export async function mutateDemo(input: Record<string, unknown>): Promise<DemoSt
     }
     if (action === 'comment') {
       requireValue(draft && version && !draft.published && text(input.text), '请填写反馈并选择未发布的内容。');
-      draft.comments.push({id: crypto.randomUUID(), versionId: version.id, author: mode === 'brand' ? '品牌团队' : mode === 'team' ? 'William / hOpOn' : '创作者', text: text(input.text), at});
-      if (mode === 'brand') version.status = 'changes';
+      draft.comments.push({id: crypto.randomUUID(), versionId: version.id, author: '品牌团队', text: text(input.text), at});
+      version.status = 'changes';
       event = '新增了内容反馈';
     }
     if (action === 'approve') {
       requireValue(draft && version && !draft.published && version.status !== 'approved', '此版本无法重复确认。');
       version.status = 'approved'; event = `品牌通过了内容 v${version.number}`;
     }
-    if (action === 'version') {
-      requireValue(draft && !draft.published && text(input.caption) && text(input.script), '请选择未发布的内容，并填写脚本与文案。');
-      const file = input.file as {key: string; name: string; type: string} | undefined;
-      requireValue(!file || media.has(file.key), '附件暂不可用，请重新选择文件。');
-      draft.versions.push({id: crypto.randomUUID(), number: draft.versions.length + 1, caption: text(input.caption), script: text(input.script), file, status: 'pending', at});
-      event = `${mode === 'creator' ? '创作者' : '团队'}提交了内容 v${draft.versions.length}`;
-    }
-    if (action === 'publish') {
-      requireValue(draft && version?.status === 'approved' && !draft.published, '请先取得最新版本的品牌确认。');
-      draft.published = true; draft.publishedAt = at; event = '团队模拟完成发布，示例结果已更新';
-    }
-    if (action === 'creator') {
-      const value = input.creator as Partial<Creator> | undefined;
-      requireValue(value && text(value.name) && text(value.category) && text(value.reason) && text(value.deliverables), '请填写完整的候选资料。');
-      requireValue(value.platform === 'Instagram', '第一阶段仅支持 Instagram。');
-      for (const [name, max, min] of [['quote',9600,1],['cost',9600,0],['followers',1e8,0],['views',1e8,0],['us',100,0],['engagement',100,0]] as const) {
-        const number = value[name]; requireValue(typeof number === 'number' && Number.isFinite(number) && number >= min && number <= max, '请检查候选资料中的数值。');
-      }
-      const old = state.creators.find(c => c.id === value.id);
-      requireValue(!old?.confirmed, '已确认的报价不能在演示中修改。');
-      const updated: Creator = {...value as Creator, id: old?.id ?? crypto.randomUUID(), handle: '演示候选人', selected: old?.selected ?? false, confirmed: false, color: old?.color ?? '#edede8', stage: '待确认'};
-      if (old) Object.assign(old, updated); else state.creators.push(updated);
-      event = `团队${old ? '更新' : '推荐'}了 ${updated.name}`;
-    }
-    if (action === 'brief') {requireValue(text(input.text), '需求不能为空。'); state.brief = text(input.text); event = '团队更新了项目需求';}
     if (action === 'geo') {const id = String(input.id); requireValue(['product','faq','measurement'].includes(id), '建议不存在。'); state.geoTasks = state.geoTasks.includes(id) ? state.geoTasks.filter(x => x !== id) : [...state.geoTasks,id]; event = '更新了 GEO 优化事项';}
-    if (action === 'reset') {state = seedDemo(); event = '已恢复当前浏览器的初始演示项目';}
     state.activity.unshift({text: event, at}); state.activity = state.activity.slice(0,50);
     return instagramOnly({...state, revision: Number(input.revision) + 1});
-  }, action === 'reset');
-  if (action === 'reset') {
-    for (const url of media.values()) URL.revokeObjectURL(url);
-    media.clear();
-  }
-  return visibleState(next, mode);
+  });
+  return visibleState(next, 'brand');
 }
 
-export async function uploadMedia(file: File) {
-  requireValue(['image/jpeg','image/png','image/webp','video/mp4','video/webm'].includes(file.type), '请选择 JPG、PNG、WebP、MP4 或 WebM 文件。');
-  requireValue(file.size > 0 && file.size <= 20 * 1024 * 1024, '文件大小需在 20 MB 以内。');
-  const key = crypto.randomUUID(); const db = await database();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction('files','readwrite');
-    transaction.objectStore('files').put(file, key);
-    transaction.oncomplete = () => resolve(); transaction.onerror = () => reject(failure(transaction.error)); transaction.onabort = () => reject(failure(transaction.error));
-  });
-  media.set(key, URL.createObjectURL(file));
-  return {key, name: file.name.slice(0,240), type: file.type};
-}
 export function mediaUrl(key: string) {return media.get(key) ?? '';}
