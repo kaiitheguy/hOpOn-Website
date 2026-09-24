@@ -11,20 +11,22 @@
 ## Demo boundaries
 
 - Florasis is an illustrative brand reference, not a client or confirmed partner. Creators, quotes, budgets and performance are fictional examples.
+- The catalogue contains six fictional creator profiles across Instagram, TikTok and YouTube. Photos, bios, audience details and content concepts are sample material; there are no public handles, creator outbound links or verified partnership claims.
+- On first load after this catalogue update, browser-local demo state runs migration version 2: it enriches known profiles, adds the new candidates and leaves Maya as the only selected and confirmed creator once. Existing drafts, media references and comments remain available; later selections persist.
 - This public entry is a brand workspace only. It covers curated creator selection, content review and feedback, approval, pending results, and GEO insight samples. There is no role selector, creator submission surface, team management surface, provider-connection form, upload control, publish simulator, reset control, or internal brief/cost editor.
 - Progress and previously stored media previews stay in the current browser's IndexedDB. They are not shared between people, devices or browser profiles. Existing browser data remains available, but this public entry does not add a new upload or reset workflow.
-- New reporting remains empty while awaiting third-party platform data. Any browser-local historical simulated publication and metrics remain explicitly labeled as fictional examples; they are not real results. The demo does not send messages, post to Instagram, purchase media, pay creators or query a provider.
+- New reporting remains empty while awaiting third-party platform data. Any browser-local historical simulated publication and metrics remain explicitly labeled as fictional examples; they are not real results. The demo does not send messages, post to a social platform, purchase media, pay creators or query a provider.
 - GEO is bundled with the promotion in this demo rather than sold as a separate monthly brand subscription. Provider costs are an internal consideration; this change does not introduce a new customer price.
 - Legacy ?mode=team, ?mode=creator, section=team, section=data, and section=submit links safely return to the brand overview. Supported brand sections may still be opened with section=overview, section=creators, section=review, section=results, or section=geo.
-- Instagram and other provider connections remain absent. There is no API key field or server-side credential handling in this public entry.
+- Social platform and other provider connections remain absent. There is no API key field or server-side credential handling in this public entry.
 
 The earlier owner-only Sites app remains separate. Its ChatGPT authentication, D1 database, R2 files and encrypted provider settings are not migrated or exposed by this frontend port.
 
 ## Accounts to arrange later
 
 1. Influencers.club account and API access: the initial discovery/public-content data candidate; confirm trial allowance, commercial quotation and API terms before enabling queries.
-2. Meta developer app and appropriate business/account permissions: for the later official Instagram insights or optional paid promotion path. No app or credential is provisioned by this demo.
-3. GEO provider access only when that service is selected; it is not required for this Instagram demo.
+2. Official platform developer apps and appropriate business/account permissions: for later social insights or optional paid promotion paths. No app or credential is provisioned by this demo.
+3. GEO provider access only when that service is selected; it is not required for this social platform demo.
 
 The detailed registration and pricing follow-up list is maintained separately in the local business notes. Do not commit credentials to this repository.
 

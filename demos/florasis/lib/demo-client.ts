@@ -1,4 +1,4 @@
-import { seedDemo, visibleState, instagramOnly, type DemoState } from './demo';
+import { normalizeDemoState, seedDemo, visibleState, type DemoState } from './demo';
 
 const DATABASE = 'hopon-florasis-public-demo-v1';
 const media = new Map<string, string>();
@@ -38,7 +38,7 @@ function stateTransaction(update?: (state: DemoState) => DemoState) {
     let problem: Error | undefined;
     read.onsuccess = () => {
       try {
-        const current = instagramOnly(read.result ?? seedDemo());
+        const current = normalizeDemoState(read.result ?? seedDemo());
         result = update ? update(structuredClone(current)) : current;
         store.put(result, 'campaign');
       } catch (e) {problem = e instanceof Error ? e : new Error('操作失败。'); transaction.abort();}
@@ -75,7 +75,11 @@ export async function mutateDemo(input: Record<string, unknown>): Promise<DemoSt
       const chosen = state.creators.filter(c => c.selected && !c.confirmed);
       requireValue(chosen.length, '请先选择新的候选博主。');
       requireValue(state.creators.filter(c => c.selected || c.confirmed).reduce((sum, c) => sum + c.quote, 0) <= 9600, '所选报价超出 $9,600 执行预算。');
-      for (const c of chosen) {c.confirmed = true; c.stage = '待敲定合作'; state.drafts.push({id: `draft-${c.id}`, creatorId: c.id, versions: [], comments: [], published: false});}
+      for (const c of chosen) {
+        c.confirmed = true;
+        c.stage = '待敲定合作';
+        if (!state.drafts.some(d => d.creatorId === c.id)) state.drafts.push({id: `draft-${c.id}`, creatorId: c.id, versions: [], comments: [], published: false});
+      }
       event = `品牌确认了 ${chosen.map(c => c.name).join('、')}，团队待敲定合作`;
     }
     if (action === 'comment') {
@@ -90,7 +94,7 @@ export async function mutateDemo(input: Record<string, unknown>): Promise<DemoSt
     }
     if (action === 'geo') {const id = String(input.id); requireValue(['product','faq','measurement'].includes(id), '建议不存在。'); state.geoTasks = state.geoTasks.includes(id) ? state.geoTasks.filter(x => x !== id) : [...state.geoTasks,id]; event = '更新了 GEO 优化事项';}
     state.activity.unshift({text: event, at}); state.activity = state.activity.slice(0,50);
-    return instagramOnly({...state, revision: Number(input.revision) + 1});
+    return normalizeDemoState({...state, revision: Number(input.revision) + 1});
   });
   return visibleState(next, 'brand');
 }
